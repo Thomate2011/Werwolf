@@ -3,6 +3,7 @@ import { Player } from '../types';
 import Modal from './Modal';
 import { useTranslation } from '../LanguageContext';
 import LanguageSelector from './LanguageSelector';
+import { ROLES_CONFIG } from '../constants';
 
 interface CardRevealPageProps {
   players: Player[];
@@ -18,6 +19,18 @@ const CardRevealPage: React.FC<CardRevealPageProps> = ({ players, onComplete }) 
   
   const isLastPlayer = currentPlayerIndex === players.length - 1;
   const currentPlayer = players[currentPlayerIndex];
+
+  
+  const getRoleInfo = (roleId: string) => {
+    const roleConfig = ROLES_CONFIG.find(r => r.id === roleId);
+    if (!roleConfig) return { name: roleId, description: '' };
+    return {
+      name: t(roleConfig.nameKey),
+      description: t(roleConfig.descriptionKey)
+    };
+  };
+
+  const currentRoleInfo = getRoleInfo(currentPlayer.role.id);
 
   const handleReveal = () => {
     setIsRevealed(true);
@@ -57,8 +70,8 @@ const CardRevealPage: React.FC<CardRevealPageProps> = ({ players, onComplete }) 
           </button>
         ) : (
           <>
-            <h2 className="text-2xl font-bold text-green-700 mb-2">{currentPlayer.role.name}</h2>
-            {showDescription && <p className="text-gray-600 mb-4">{currentPlayer.role.description}</p>}
+            <h2 className="text-2xl font-bold text-green-700 mb-2">{currentRoleInfo.name}</h2>
+            {showDescription && <p className="text-gray-600 mb-4">{currentRoleInfo.description}</p>}
             
             <div className="flex space-x-4 mt-4">
               {!showDescription && (

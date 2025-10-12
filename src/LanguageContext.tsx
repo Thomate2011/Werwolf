@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react';
-import { translations, LANGUAGES } from './i18n';
+import { translations } from './i18n';
 
-type Locale = 'de' | 'en' | 'es' | 'fr' | 'it' | 'pt';
+type Locale = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'it' | 'ru' | 'is' | 'sv' |'zh' | 'ja' | 'tr' | 'ar' | 'ko' | 'hi' | 'bn' | 'emoji';
 
 interface LanguageContextType {
   locale: Locale;
@@ -15,7 +15,7 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [locale, setLocale] = useState<Locale>('de');
 
   const t = (key: string, replacements?: Record<string, string | number>): string => {
-    let translation = translations[locale]?.[key] || translations['en']?.[key] || key;
+    let translation = translations[locale]?.[key] || translations['de']?.[key] || key;
     if (replacements) {
         Object.entries(replacements).forEach(([keyToReplace, value]) => {
             translation = translation.replace(`{${keyToReplace}}`, String(value));

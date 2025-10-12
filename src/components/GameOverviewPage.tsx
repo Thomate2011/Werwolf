@@ -4,7 +4,6 @@ import { InfoIcon } from './icons';
 import Modal from './Modal';
 import { useTranslation } from '../LanguageContext';
 import LanguageSelector from './LanguageSelector';
-import { ROLES_CONFIG } from '../constants';
 
 type Action = 'amor' | 'dieb' | 'gaukler' | 'urwolf' | 'ergebene_magd' | 'waisenkind' | null;
 type SelectionMode = 'amor' | 'urwolf' | 'ergebene_magd' | 'waisenkind' | null;

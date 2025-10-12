@@ -8,14 +8,16 @@ const LanguageSelector: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const { setLocale, t } = useTranslation();
 
-  const handleSelect = (code: 'de' | 'en' | 'es' | 'fr' | 'it' | 'pt') => {
+  const handleSelect = (
+    code: 'de' | 'en' | 'fr' | 'es' | 'pt' | 'it' | 'ru' | 'is' | 'sv' | 'zh' | 'ja' | 'tr' | 'ar' | 'ko' | 'hi' | 'bn' | 'emoji'
+  ) => {
     setLocale(code);
     setShowModal(false);
   };
 
   return (
     <>
-      <button 
+      <button
         onClick={() => setShowModal(true)}
         className="p-2 hover:bg-gray-100 rounded-full transition"
         title={t('language')}
@@ -25,9 +27,10 @@ const LanguageSelector: React.FC = () => {
 
       {showModal && (
         <Modal title={t('language')} onClose={() => setShowModal(false)}>
-          <div className="space-y-2">
-            {LANGUAGES.map(lang => (
-              <button 
+          {/* Scrollbarer Bereich */}
+          <div className="max-h-[60vh] overflow-y-auto space-y-2 pr-2">
+            {LANGUAGES.map((lang) => (
+              <button
                 key={lang.code}
                 onClick={() => handleSelect(lang.code as any)}
                 className="w-full text-left p-3 rounded-lg hover:bg-gray-100 transition flex items-center"

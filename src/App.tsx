@@ -182,40 +182,37 @@ const App: React.FC = () => {
   };
 
   const handleOrphanAction = (orphanName: string, targetName: string) => {
-    const orphanPlayerIndex = assignedRoles.findIndex(p => p.name === orphanName);
-    const targetPlayerIndex = assignedRoles.findIndex(p => p.name === targetName);
+  const orphanPlayerIndex = assignedRoles.findIndex(p => p.name === orphanName);
+  const targetPlayerIndex = assignedRoles.findIndex(p => p.name === targetName);
 
-    if (orphanPlayerIndex === -1 || targetPlayerIndex === -1) return;
+  if (orphanPlayerIndex === -1 || targetPlayerIndex === -1) return;
 
-    const newPlayers = [...assignedRoles];
-    const orphanPlayer = newPlayers[orphanPlayerIndex];
-    const targetPlayer = newPlayers[targetPlayerIndex];
-    const specialSwapRoles = ['dieb', 'gaukler', 'ergebene_magd'];
+  const newPlayers = [...assignedRoles];
+  const orphanPlayer = newPlayers[orphanPlayerIndex];
+  const targetPlayer = newPlayers[targetPlayerIndex];
 
-    if (specialSwapRoles.includes(targetPlayer.role.id)) {
-      // Swap roles
-      const tempRole = orphanPlayer.role;
-      orphanPlayer.role = targetPlayer.role;
-      targetPlayer.role = tempRole;
-    } else {
-      // Adopt role
-      orphanPlayer.role = targetPlayer.role;
-    }
-    
-    setOrphanHasUsedAbility(true);
-    setAssignedRoles(newPlayers);
-  };
+  orphanPlayer.role = targetPlayer.role;
+  
+  setOrphanHasUsedAbility(true);
+  setAssignedRoles(newPlayers);
+};
   
   const handleRoleSwap = (playerOriginalRole: 'dieb' | 'gaukler', newRole: Role) => {
-    const playerIndex = assignedRoles.findIndex(p => p.originalRole.id === playerOriginalRole);
-    if (playerIndex === -1) return;
-    
     const newPlayers = [...assignedRoles];
-    newPlayers[playerIndex].role = newRole;
     
+    // Finde ALLE Spieler mit dieser AKTUELLEN Rolle (inkl. Waisenkind!)
+    const playersWithRole = newPlayers.filter(p => p.role.id === playerOriginalRole);
+    
+    // Tausche die Rolle für ALLE Spieler (Vorbild + Waisenkind)
+    playersWithRole.forEach(player => {
+      player.role = newRole;
+    });
+    
+    // Für Dieb: Entferne die gewählte Karte
     if(playerOriginalRole === 'dieb') {
-        setThiefExtraRoles(prev => prev.filter(r => r.id !== newRole.id));
+      setThiefExtraRoles(prev => prev.filter(r => r.id !== newRole.id));
     }
+    
     setAssignedRoles(newPlayers);
   };
 
