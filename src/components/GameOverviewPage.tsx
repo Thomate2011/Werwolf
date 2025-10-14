@@ -4,6 +4,7 @@ import { InfoIcon } from './icons';
 import Modal from './Modal';
 import { useTranslation } from '../LanguageContext';
 import LanguageSelector from './LanguageSelector';
+import { ROLES_CONFIG } from '../constants';
 
 type Action = 'amor' | 'dieb' | 'gaukler' | 'urwolf' | 'ergebene_magd' | 'waisenkind' | null;
 type SelectionMode = 'amor' | 'urwolf' | 'ergebene_magd' | 'waisenkind' | null;
@@ -46,6 +47,27 @@ const GameOverviewPage: React.FC<GameOverviewPageProps> = (props) => {
   const [selectionMessage, setSelectionMessage] = useState('');
   const [showRemoveLoversModal, setShowRemoveLoversModal] = useState(false);
   const { t } = useTranslation();
+
+  const getRoleInfo = (roleId: string) => {
+    const roleConfig = ROLES_CONFIG.find(r => r.id === roleId);
+    if (!roleConfig) return { name: roleId, description: '' };
+    return {
+      name: t(roleConfig.nameKey),
+      description: t(roleConfig.descriptionKey)
+    };
+  };
+
+  const translatedThiefRoles: Role[] = thiefExtraRoles.map(role => ({
+    ...role,
+    name: getRoleInfo(role.id).name,
+    description: getRoleInfo(role.id).description
+  }));
+
+  const translatedJesterRoles: Role[] = jesterExtraRoles.map(role => ({
+    ...role,
+    name: getRoleInfo(role.id).name,
+    description: getRoleInfo(role.id).description
+  }));
 
   const findAlivePlayerByOriginalRole = (roleId: string): Player | undefined => {
     return players.find(p => p.originalRole.id === roleId && p.status === 'alive');
@@ -146,29 +168,32 @@ const GameOverviewPage: React.FC<GameOverviewPageProps> = (props) => {
       <p className="text-sm text-gray-600 mb-4 p-2 bg-gray-50 rounded-md">{t('overview_instruction')}</p>
 
       <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
-        {players.map((player, index) => (
-          <div 
-            key={index} 
-            className={`flex items-center justify-between p-3 rounded-lg transition ${player.status === 'alive' ? 'cursor-pointer' : ''} ${selectionMode && player.status === 'alive' ? 'hover:bg-blue-100' : 'cursor-pointer'} ${
-              player.status === 'dead' ? 'bg-gray-200 text-gray-500 hover:bg-gray-300' : 'bg-gray-100 hover:bg-gray-200'
-            }`}
-            onClick={() => handlePlayerClick(index)}
-          >
-            <div className="flex items-center">
-                <span className={`font-semibold ${player.status === 'dead' ? 'line-through' : ''}`}>
-                  {player.role.name} | {player.name}
-                </span>
+        {players.map((player, index) => {
+          const playerRoleInfo = getRoleInfo(player.role.id);
+          return (
+            <div 
+              key={index} 
+              className={`flex items-center justify-between p-3 rounded-lg transition ${player.status === 'alive' ? 'cursor-pointer' : ''} ${selectionMode && player.status === 'alive' ? 'hover:bg-blue-100' : 'cursor-pointer'} ${
+                player.status === 'dead' ? 'bg-gray-200 text-gray-500 hover:bg-gray-300' : 'bg-gray-100 hover:bg-gray-200'
+              }`}
+              onClick={() => handlePlayerClick(index)}
+            >
+              <div className="flex items-center">
+                  <span className={`font-semibold ${player.status === 'dead' ? 'line-through' : ''}`}>
+                    {playerRoleInfo.name} | {player.name}
+                  </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                  {lovers.includes(player.name) && (
+                      <button onClick={(e) => { e.stopPropagation(); setShowRemoveLoversModal(true); }} className="text-lg">❤️</button>
+                  )}
+                  <button onClick={(e) => { e.stopPropagation(); setInfoModalRole({ id: player.role.id, name: playerRoleInfo.name, description: playerRoleInfo.description }); }} className="text-blue-500 hover:text-blue-700">
+                    <InfoIcon className="w-6 h-6" />
+                  </button>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-                {lovers.includes(player.name) && (
-                    <button onClick={(e) => { e.stopPropagation(); setShowRemoveLoversModal(true); }} className="text-lg">❤️</button>
-                )}
-                <button onClick={(e) => { e.stopPropagation(); setInfoModalRole(player.role); }} className="text-blue-500 hover:text-blue-700">
-                  <InfoIcon className="w-6 h-6" />
-                </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       
       <div className="mt-6 grid grid-cols-2 gap-4">
@@ -216,7 +241,7 @@ const GameOverviewPage: React.FC<GameOverviewPageProps> = (props) => {
              <div className="space-y-4">
                 <p>{t('action_thief_desc')}</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {thiefExtraRoles.map((role, i) => <RoleCard key={i} role={role} onClick={() => { onRoleSwap('dieb', role); setActiveAction(null); }} />)}
+                  {translatedThiefRoles.map((role, i) => <RoleCard key={i} role={role} onClick={() => { onRoleSwap('dieb', role); setActiveAction(null); }} />)}
                 </div>
               </div>
           )}
@@ -224,7 +249,7 @@ const GameOverviewPage: React.FC<GameOverviewPageProps> = (props) => {
              <div className="space-y-4">
                 <p>{t('action_jester_desc')}</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {jesterExtraRoles.map((role, i) => <RoleCard key={i} role={role} onClick={() => { onRoleSwap('gaukler', role); setActiveAction(null); }} />)}
+                  {translatedJesterRoles.map((role, i) => <RoleCard key={i} role={role} onClick={() => { onRoleSwap('gaukler', role); setActiveAction(null); }} />)}
                 </div>
               </div>
           )}
