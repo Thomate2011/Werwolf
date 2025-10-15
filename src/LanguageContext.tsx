@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { translations } from './i18n';
 
-type Locale = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'it' | 'ru' | 'is' | 'sv' |'zh' | 'ja' | 'tr' | 'ar' | 'ko' | 'hi' | 'bn' | 'emoji';
+type Locale = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'it' | 'ru' | 'is' | 'sv' |'zh' | 'ja' | 'tr' | 'ar' | 'ko' | 'hi' | 'bn' | 'pl' | 'da' | 'cs' | 'fi' | 'no' | 'hu' | 'nl' | 'ro' | 'he' | 'emoji';
 
 interface LanguageContextType {
   locale: Locale;
