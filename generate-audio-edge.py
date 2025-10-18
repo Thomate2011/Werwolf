@@ -2,59 +2,53 @@ import asyncio
 import edge_tts
 import os
 
-
 texts = {
-    "ru": {
-        
-    },
-    "is": {
-        
-    },
-    "sv": {
-        
-    },
-    "zh": {
-        
-    },
-    "ja": {
-        
-    },
-    "tr": {
-        
-    },
-    "ar": {
-        
-    },
-    "ko": {
-        
-    },
-    "hi": {
-        
-    },
-    "bn": {
-        
-    }
+ "pt": {
+    "narrator_day_bear_growl": "(Grrrr... grrrr...)",
+},
+"it": {
+    "narrator_day_bear_growl": "(Grrrr... grrrr...)",
+},
+"sv": {
+    "narrator_day_bear_growl": "(Grrrr... grrrr...)",
+},
+"ar": {
+    "narrator_day_bear_growl": "(Grrrr... grrrr...)",
+},
+"hi": {
+    "narrator_day_bear_growl": "(Grrrr... grrrr...)",
+},
+"bn": {
+    "narrator_day_bear_growl": "(Grrrr... grrrr...)",
+},
+"pl": {
+    "narrator_day_bear_growl": "(Grrrr... grrrr...)",
+},
+"nl": {
+    "narrator_day_bear_growl": "(Grrrr... grrrr...)",
+},
+"he": {
+    "narrator_day_bear_growl": "(Grrrr... grrrr...)",
+},
+"nb": {
+    "narrator_day_bear_growl": "(Grrrr... grrrr...)",
+}
 }
 
 
 voices = {
-    "de": "de-DE-ConradNeural",
-    "en": "en-US-GuyNeural",
-    "fr": "fr-FR-HenriNeural",
-    "es": "es-ES-AlvaroNeural",
-    "pt": "pt-PT-HugoNeural",
-    "it": "it-IT-PietroNeural",
-    "ru": "ru-RU-DmitryNeural",
-    "is": "is-IS-GunnarNeural",
-    "sv": "sv-SE-ArthurNeural",
-    "zh": "zh-CN-YunfengNeural",
-    "ja": "ja-JP-KeitaNeural",
-    "tr": "tr-TR-AhmetNeural",
-    "ar": "ar-SA-FaisalNeural",
-    "ko": "ko-KR-InJoonNeural",
-    "hi": "hi-IN-PrabhatNeural",
-    "bn": "bn-IN-PrabhatNeural"
+    "pt": "pt-BR-AntonioNeural",
+    "it": "it-IT-AlessioMultilingualNeural",
+    "sv": "sv-SE-MattiasNeural",
+    "ar": "ar-AE-HamdanNeural",
+    "hi": "hi-IN-AaravNeural",
+    "bn": "bn-IN-BashkarNeural",
+    "pl": "pl-PL-MarekNeural",
+    "nl": "nl-NL-MaartenNeural",
+    "he": "he-IL-AvriNeural",
+    "nb": "nb-NO-FinnNeural",
 }
+
 
 async def generate_audio(text, voice, filename):
     communicate = edge_tts.Communicate(text, voice, rate="-15%")

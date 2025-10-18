@@ -8,9 +8,16 @@ import { ROLES_CONFIG } from '../constants';
 interface CardRevealPageProps {
   players: Player[];
   onComplete: () => void;
+  onCompleteWithNarrator?: () => void; 
+  narratorMode?: boolean;                
 }
 
-const CardRevealPage: React.FC<CardRevealPageProps> = ({ players, onComplete }) => {
+const CardRevealPage: React.FC<CardRevealPageProps> = ({ 
+  players, 
+  onComplete,
+  onCompleteWithNarrator,
+  narratorMode = false
+}) => {
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
@@ -20,7 +27,6 @@ const CardRevealPage: React.FC<CardRevealPageProps> = ({ players, onComplete }) 
   const isLastPlayer = currentPlayerIndex === players.length - 1;
   const currentPlayer = players[currentPlayerIndex];
 
-  
   const getRoleInfo = (roleId: string) => {
     const roleConfig = ROLES_CONFIG.find(r => r.id === roleId);
     if (!roleConfig) return { name: roleId, description: '' };
@@ -50,7 +56,12 @@ const CardRevealPage: React.FC<CardRevealPageProps> = ({ players, onComplete }) 
 
   const handleProceedToOverview = () => {
     setShowCompletionModal(false);
-    onComplete();
+    // NEU: Unterscheidung zwischen Modus
+    if (narratorMode) {
+      onCompleteWithNarrator?.();
+    } else {
+      onComplete();
+    }
   }
 
   return (
@@ -85,7 +96,7 @@ const CardRevealPage: React.FC<CardRevealPageProps> = ({ players, onComplete }) 
                  </button>
               ) : (
                  <button onClick={handleShowOverview} className="bg-[#2e7d32] text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition">
-                    {t('overview')}
+                    {narratorMode ? t('to_game') : t('overview')}
                  </button>
               )}
             </div>
@@ -100,7 +111,7 @@ const CardRevealPage: React.FC<CardRevealPageProps> = ({ players, onComplete }) 
             onClick={handleProceedToOverview} 
             className="mt-6 w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition"
           >
-            {t('to_overview')}
+            {narratorMode ? t('to_game') : t('to_overview')}
           </button>
         </Modal>
       )}

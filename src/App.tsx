@@ -1,3 +1,5 @@
+// src/App.tsx - FINAL MIT ERZÄHLER-MODUS
+
 import React, { useState, useCallback, useMemo } from 'react';
 import { Page, Player, Role } from './types';
 import HomePage from './components/HomePage';
@@ -6,6 +8,10 @@ import RoleSelectionPage from './components/RoleSelectionPage';
 import CardRevealPage from './components/CardRevealPage';
 import GameOverviewPage from './components/GameOverviewPage';
 import NarratorPage from './components/NarratorPage';
+import NarratorModeSelector from './components/NarratorModeSelector';
+import NarratorSeatingInfo from './components/NarratorSeatingInfo';
+import NarratorGameStart from './components/NarratorGameStart';
+import NarratorGame from './components/NarratorGame';
 import { ROLES_CONFIG } from './constants';
 import { useTranslation } from './LanguageContext';
 
@@ -21,7 +27,8 @@ const App: React.FC = () => {
   const [players, setPlayers] = useState<string[]>([]);
   const [assignedRoles, setAssignedRoles] = useState<Player[]>([]);
   const [narratorRound, setNarratorRound] = useState<'1' | '2'>('1');
-  
+  const [narratorMode, setNarratorMode] = useState<boolean>(false);
+
   const [selectedRoles, setSelectedRoles] = useState<Record<string, number>>({});
   const [thiefExtraRoles, setThiefExtraRoles] = useState<Role[]>([]);
   const [jesterExtraRoles, setJesterExtraRoles] = useState<Role[]>([]);
@@ -30,23 +37,30 @@ const App: React.FC = () => {
   const [urwolfHasUsedAbility, setUrwolfHasUsedAbility] = useState(false);
   const [orphanHasUsedAbility, setOrphanHasUsedAbility] = useState(false);
   const [maidActionHistory, setMaidActionHistory] = useState<MaidActionHistory | null>(null);
-  
+
   const { t } = useTranslation();
 
-  const ROLES: Role[] = useMemo(() => ROLES_CONFIG.map(role => ({
-    id: role.id,
-    name: t(role.nameKey),
-    description: t(role.descriptionKey)
-  })), [t]);
+  const ROLES: Role[] = useMemo(
+    () =>
+      ROLES_CONFIG.map((role) => ({
+        id: role.id,
+        name: t(role.nameKey),
+        description: t(role.descriptionKey),
+      })),
+    [t]
+  );
 
-  const handleSetPlayers = useCallback((playerNames: string[]) => {
-    const currentTotalRoles = Object.values(selectedRoles).reduce((a, b) => a + b, 0);
-    if (playerNames.length < currentTotalRoles) {
-      setSelectedRoles({});
-    }
-    setPlayers(playerNames);
-    setCurrentPage('role-selection');
-  }, [selectedRoles]);
+  const handleSetPlayers = useCallback(
+    (playerNames: string[]) => {
+      const currentTotalRoles = Object.values(selectedRoles).reduce((a, b) => a + b, 0);
+      if (playerNames.length < currentTotalRoles) {
+        setSelectedRoles({});
+      }
+      setPlayers(playerNames);
+      setCurrentPage('role-selection');
+    },
+    [selectedRoles]
+  );
 
   const shuffleArray = <T,>(array: T[]): T[] => {
     let currentIndex = array.length, randomIndex;
@@ -58,25 +72,28 @@ const App: React.FC = () => {
     return array;
   };
 
-  const handleStartGame = useCallback((roles: Role[], thiefRoles: Role[], jesterRoles: Role[]) => {
-    const shuffledRoles = shuffleArray(roles);
-    const assigned: Player[] = players.map((name, index) => ({
-      name,
-      role: shuffledRoles[index],
-      originalRole: shuffledRoles[index],
-      status: 'alive',
-    }));
-    setAssignedRoles(assigned);
-    setThiefExtraRoles(thiefRoles);
-    setJesterExtraRoles(jesterRoles);
-    setLovers([]);
-    setUrwolfHasUsedAbility(false);
-    setOrphanHasUsedAbility(false);
-    setMaidActionHistory(null);
-    setNarratorRound('1');
-    setCurrentPage('card-reveal');
-  }, [players]);
-  
+  const handleStartGame = useCallback(
+    (roles: Role[], thiefRoles: Role[], jesterRoles: Role[]) => {
+      const shuffledRoles = shuffleArray(roles);
+      const assigned: Player[] = players.map((name, index) => ({
+        name,
+        role: shuffledRoles[index],
+        originalRole: shuffledRoles[index],
+        status: 'alive',
+      }));
+      setAssignedRoles(assigned);
+      setThiefExtraRoles(thiefRoles);
+      setJesterExtraRoles(jesterRoles);
+      setLovers([]);
+      setUrwolfHasUsedAbility(false);
+      setOrphanHasUsedAbility(false);
+      setMaidActionHistory(null);
+      setNarratorRound('1');
+      setCurrentPage('card-reveal');
+    },
+    [players]
+  );
+
   const handleGoToRoleSelection = useCallback(() => {
     setCurrentPage('role-selection');
   }, []);
@@ -89,65 +106,86 @@ const App: React.FC = () => {
     setLovers([]);
     setSelectedRoles({});
     setOrphanHasUsedAbility(false);
+    setNarratorMode(false);
     setCurrentPage('home');
   }, []);
 
-  const handleTogglePlayerStatus = useCallback((playerName: string) => {
-    let newPlayers = [...assignedRoles];
-    const playerIndex = newPlayers.findIndex(p => p.name === playerName);
-
-    if (playerIndex === -1) return;
-
-    const clickedPlayer = newPlayers[playerIndex];
-    
-    if (lovers.includes(clickedPlayer.name)) {
-        const areBothLoversDead = lovers.every(loverName => {
-            const loverPlayer = newPlayers.find(p => p.name === loverName);
-            return loverPlayer && loverPlayer.status === 'dead';
-        });
-        
-        if (areBothLoversDead && clickedPlayer.status === 'dead') {
-             newPlayers = newPlayers.map(p => {
-                if (lovers.includes(p.name)) {
-                    return { ...p, status: 'alive' };
-                }
-                return p;
-            });
-        } else { 
-            newPlayers = newPlayers.map(p => {
-                if (lovers.includes(p.name)) {
-                    return { ...p, status: 'dead' };
-                }
-                return p;
-            });
-        }
-        
+  const handleNarratorModeSelection = useCallback((mode: 'narrator' | 'normal') => {
+    if (mode === 'narrator') {
+      setNarratorMode(true);
+      setCurrentPage('narrator-seating');
     } else {
+      setNarratorMode(false);
+      setCurrentPage('overview');
+    }
+  }, []);
+
+  const handleNarratorSeatingConfirm = useCallback(() => {
+    setCurrentPage('narrator-game-start');
+  }, []);
+
+  const handleNarratorGameStart = useCallback(() => {
+    setCurrentPage('narrator-game');
+  }, []);
+
+  const handleTogglePlayerStatus = useCallback(
+    (playerName: string) => {
+      let newPlayers = [...assignedRoles];
+      const playerIndex = newPlayers.findIndex((p) => p.name === playerName);
+
+      if (playerIndex === -1) return;
+
+      const clickedPlayer = newPlayers[playerIndex];
+
+      if (lovers.includes(clickedPlayer.name)) {
+        const areBothLoversDead = lovers.every((loverName) => {
+          const loverPlayer = newPlayers.find((p) => p.name === loverName);
+          return loverPlayer && loverPlayer.status === 'dead';
+        });
+
+        if (areBothLoversDead && clickedPlayer.status === 'dead') {
+          newPlayers = newPlayers.map((p) => {
+            if (lovers.includes(p.name)) {
+              return { ...p, status: 'alive' };
+            }
+            return p;
+          });
+        } else {
+          newPlayers = newPlayers.map((p) => {
+            if (lovers.includes(p.name)) {
+              return { ...p, status: 'dead' };
+            }
+            return p;
+          });
+        }
+      } else {
         const newStatus = clickedPlayer.status === 'dead' ? 'alive' : 'dead';
         newPlayers[playerIndex] = { ...clickedPlayer, status: newStatus };
-    }
+      }
 
-    if (maidActionHistory) {
-        const targetPlayer = newPlayers.find(p => p.name === maidActionHistory.targetName);
+      if (maidActionHistory) {
+        const targetPlayer = newPlayers.find((p) => p.name === maidActionHistory.targetName);
         if (targetPlayer && targetPlayer.status === 'alive') {
-            const maidPlayer = newPlayers.find(p => p.name === maidActionHistory.maidName);
-            if (maidPlayer) {
-                const maidPlayerIndex = newPlayers.findIndex(p => p.name === maidActionHistory.maidName);
-                const targetPlayerIndex = newPlayers.findIndex(p => p.name === maidActionHistory.targetName);
+          const maidPlayer = newPlayers.find((p) => p.name === maidActionHistory.maidName);
+          if (maidPlayer) {
+            const maidPlayerIndex = newPlayers.findIndex((p) => p.name === maidActionHistory.maidName);
+            const targetPlayerIndex = newPlayers.findIndex((p) => p.name === maidActionHistory.targetName);
 
-                newPlayers[maidPlayerIndex].role = maidActionHistory.maidOriginalRole;
-                newPlayers[targetPlayerIndex].role = maidActionHistory.targetOriginalRole;
-            }
-            setMaidActionHistory(null); 
+            newPlayers[maidPlayerIndex].role = maidActionHistory.maidOriginalRole;
+            newPlayers[targetPlayerIndex].role = maidActionHistory.targetOriginalRole;
+          }
+          setMaidActionHistory(null);
         }
-    }
-    
-    setAssignedRoles(newPlayers);
-  }, [assignedRoles, lovers, maidActionHistory]);
-  
+      }
+
+      setAssignedRoles(newPlayers);
+    },
+    [assignedRoles, lovers, maidActionHistory]
+  );
+
   const handleMaidAction = (maidName: string, targetName: string) => {
-    const maidPlayerIndex = assignedRoles.findIndex(p => p.name === maidName);
-    const targetPlayerIndex = assignedRoles.findIndex(p => p.name === targetName);
+    const maidPlayerIndex = assignedRoles.findIndex((p) => p.name === maidName);
+    const targetPlayerIndex = assignedRoles.findIndex((p) => p.name === targetName);
 
     if (maidPlayerIndex === -1 || targetPlayerIndex === -1) return;
 
@@ -161,19 +199,19 @@ const App: React.FC = () => {
       targetName: targetPlayer.name,
       targetOriginalRole: targetPlayer.role,
     });
-    
+
     maidPlayer.role = targetPlayer.role;
     targetPlayer.status = 'dead';
-    
+
     setAssignedRoles(newPlayers);
   };
-  
+
   const handleUrwolfAction = (targetName: string) => {
-    const targetPlayerIndex = assignedRoles.findIndex(p => p.name === targetName);
+    const targetPlayerIndex = assignedRoles.findIndex((p) => p.name === targetName);
     if (targetPlayerIndex === -1) return;
 
     const newPlayers = [...assignedRoles];
-    const werwolfRole = ROLES.find(r => r.id === 'werwolf');
+    const werwolfRole = ROLES.find((r) => r.id === 'werwolf');
     if (werwolfRole) {
       newPlayers[targetPlayerIndex].role = werwolfRole;
     }
@@ -182,37 +220,32 @@ const App: React.FC = () => {
   };
 
   const handleOrphanAction = (orphanName: string, targetName: string) => {
-  const orphanPlayerIndex = assignedRoles.findIndex(p => p.name === orphanName);
-  const targetPlayerIndex = assignedRoles.findIndex(p => p.name === targetName);
+    const orphanPlayerIndex = assignedRoles.findIndex((p) => p.name === orphanName);
+    const targetPlayerIndex = assignedRoles.findIndex((p) => p.name === targetName);
 
-  if (orphanPlayerIndex === -1 || targetPlayerIndex === -1) return;
+    if (orphanPlayerIndex === -1 || targetPlayerIndex === -1) return;
 
-  const newPlayers = [...assignedRoles];
-  const orphanPlayer = newPlayers[orphanPlayerIndex];
-  const targetPlayer = newPlayers[targetPlayerIndex];
+    const newPlayers = [...assignedRoles];
+    const orphanPlayer = newPlayers[orphanPlayerIndex];
+    const targetPlayer = newPlayers[targetPlayerIndex];
 
-  orphanPlayer.role = targetPlayer.role;
-  
-  setOrphanHasUsedAbility(true);
-  setAssignedRoles(newPlayers);
-};
-  
+    orphanPlayer.role = targetPlayer.role;
+    setOrphanHasUsedAbility(true);
+    setAssignedRoles(newPlayers);
+  };
+
   const handleRoleSwap = (playerOriginalRole: 'dieb' | 'gaukler', newRole: Role) => {
     const newPlayers = [...assignedRoles];
-    
-    // Finde ALLE Spieler mit dieser AKTUELLEN Rolle (inkl. Waisenkind!)
-    const playersWithRole = newPlayers.filter(p => p.role.id === playerOriginalRole);
-    
-    // Tausche die Rolle für ALLE Spieler (Vorbild + Waisenkind)
-    playersWithRole.forEach(player => {
+    const playersWithRole = newPlayers.filter((p) => p.role.id === playerOriginalRole);
+
+    playersWithRole.forEach((player) => {
       player.role = newRole;
     });
-    
-    // Für Dieb: Entferne die gewählte Karte
-    if(playerOriginalRole === 'dieb') {
-      setThiefExtraRoles(prev => prev.filter(r => r.id !== newRole.id));
+
+    if (playerOriginalRole === 'dieb') {
+      setThiefExtraRoles((prev) => prev.filter((r) => r.id !== newRole.id));
     }
-    
+
     setAssignedRoles(newPlayers);
   };
 
@@ -220,43 +253,90 @@ const App: React.FC = () => {
     switch (currentPage) {
       case 'home':
         return <HomePage onStart={() => setCurrentPage('player-entry')} />;
+
       case 'player-entry':
         return <PlayerEntryPage onNext={handleSetPlayers} initialPlayerNames={players} />;
+
       case 'role-selection':
-        return <RoleSelectionPage 
-                  playerCount={players.length} 
-                  onBack={() => setCurrentPage('player-entry')} 
-                  onStartGame={handleStartGame}
-                  initialSelectedRoles={selectedRoles}
-                  onSelectionChange={setSelectedRoles}
-                />;
+        return (
+          <RoleSelectionPage
+            playerCount={players.length}
+            onBack={() => setCurrentPage('player-entry')}
+            onStartGame={handleStartGame}
+            initialSelectedRoles={selectedRoles}
+            onSelectionChange={setSelectedRoles}
+          />
+        );
+
       case 'card-reveal':
-        return <CardRevealPage players={assignedRoles} onComplete={() => setCurrentPage('overview')} />;
+        return (
+          <CardRevealPage
+            players={assignedRoles}
+            onComplete={() => setCurrentPage('overview')}
+            onCompleteWithNarrator={() => setCurrentPage('narrator-mode-selector')}
+            narratorMode={false}
+          />
+        );
+
+      case 'narrator-mode-selector':
+        return (
+          <NarratorModeSelector
+            players={assignedRoles}
+            onSelectMode={handleNarratorModeSelection}
+            onBack={() => setCurrentPage('card-reveal')}
+          />
+        );
+
+      case 'narrator-seating':
+        return <NarratorSeatingInfo onConfirm={handleNarratorSeatingConfirm} />;
+
+      case 'narrator-game-start':
+        return <NarratorGameStart onStart={handleNarratorGameStart} />;
+
+      case 'narrator-game':
+        return (
+          <NarratorGame
+            players={assignedRoles}
+            onGameEnd={(winner) => {
+              console.log('Game ended:', winner);
+              handleGoHome();
+            }}
+            onNavigate={handleGoHome}
+            onGoToRoleSelection={handleGoToRoleSelection}
+          />
+        );
+
       case 'overview':
-        return <GameOverviewPage 
-                  players={assignedRoles} 
-                  onTogglePlayerStatus={handleTogglePlayerStatus} 
-                  onNavigate={handleGoHome}
-                  onGoToNarrator={() => setCurrentPage('narrator')}
-                  onGoToRoleSelection={handleGoToRoleSelection}
-                  thiefExtraRoles={thiefExtraRoles}
-                  jesterExtraRoles={jesterExtraRoles}
-                  lovers={lovers}
-                  onSetLovers={setLovers}
-                  onMaidAction={handleMaidAction}
-                  onUrwolfAction={handleUrwolfAction}
-                  onRoleSwap={handleRoleSwap}
-                  urwolfHasUsedAbility={urwolfHasUsedAbility}
-                  orphanHasUsedAbility={orphanHasUsedAbility}
-                  onOrphanAction={handleOrphanAction}
-                />;
+        return (
+          <GameOverviewPage
+            players={assignedRoles}
+            onTogglePlayerStatus={handleTogglePlayerStatus}
+            onNavigate={handleGoHome}
+            onGoToNarrator={() => setCurrentPage('narrator')}
+            onGoToRoleSelection={handleGoToRoleSelection}
+            thiefExtraRoles={thiefExtraRoles}
+            jesterExtraRoles={jesterExtraRoles}
+            lovers={lovers}
+            onSetLovers={setLovers}
+            onMaidAction={handleMaidAction}
+            onUrwolfAction={handleUrwolfAction}
+            onRoleSwap={handleRoleSwap}
+            urwolfHasUsedAbility={urwolfHasUsedAbility}
+            orphanHasUsedAbility={orphanHasUsedAbility}
+            onOrphanAction={handleOrphanAction}
+          />
+        );
+
       case 'narrator':
-        return <NarratorPage 
-                  onBack={() => setCurrentPage('overview')} 
-                  activeRound={narratorRound}
-                  setActiveRound={setNarratorRound}
-                  players={assignedRoles}
-                />;
+        return (
+          <NarratorPage
+            onBack={() => setCurrentPage('overview')}
+            activeRound={narratorRound}
+            setActiveRound={setNarratorRound}
+            players={assignedRoles}
+          />
+        );
+
       default:
         return <HomePage onStart={() => setCurrentPage('player-entry')} />;
     }
