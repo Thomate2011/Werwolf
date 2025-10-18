@@ -1,4 +1,4 @@
-// src/App.tsx - FINAL MIT ERZÄHLER-MODUS
+// src/App.tsx - KORRIGIERT: Narrator-Modus VOR Card-Reveal
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { Page, Player, Role } from './types';
@@ -28,6 +28,7 @@ const App: React.FC = () => {
   const [assignedRoles, setAssignedRoles] = useState<Player[]>([]);
   const [narratorRound, setNarratorRound] = useState<'1' | '2'>('1');
   const [narratorMode, setNarratorMode] = useState<boolean>(false);
+  const [showNarratorSelector, setShowNarratorSelector] = useState<boolean>(false);
 
   const [selectedRoles, setSelectedRoles] = useState<Record<string, number>>({});
   const [thiefExtraRoles, setThiefExtraRoles] = useState<Role[]>([]);
@@ -89,7 +90,8 @@ const App: React.FC = () => {
       setOrphanHasUsedAbility(false);
       setMaidActionHistory(null);
       setNarratorRound('1');
-      setCurrentPage('card-reveal');
+      // WICHTIG: Direkt zum Narrator-Selector, NICHT zu card-reveal
+      setShowNarratorSelector(true);
     },
     [players]
   );
@@ -107,16 +109,18 @@ const App: React.FC = () => {
     setSelectedRoles({});
     setOrphanHasUsedAbility(false);
     setNarratorMode(false);
+    setShowNarratorSelector(false);
     setCurrentPage('home');
   }, []);
 
   const handleNarratorModeSelection = useCallback((mode: 'narrator' | 'normal') => {
+    setShowNarratorSelector(false);
     if (mode === 'narrator') {
       setNarratorMode(true);
       setCurrentPage('narrator-seating');
     } else {
       setNarratorMode(false);
-      setCurrentPage('overview');
+      setCurrentPage('card-reveal');
     }
   }, []);
 
@@ -273,17 +277,7 @@ const App: React.FC = () => {
           <CardRevealPage
             players={assignedRoles}
             onComplete={() => setCurrentPage('overview')}
-            onCompleteWithNarrator={() => setCurrentPage('narrator-mode-selector')}
             narratorMode={false}
-          />
-        );
-
-      case 'narrator-mode-selector':
-        return (
-          <NarratorModeSelector
-            players={assignedRoles}
-            onSelectMode={handleNarratorModeSelection}
-            onBack={() => setCurrentPage('card-reveal')}
           />
         );
 
@@ -341,6 +335,22 @@ const App: React.FC = () => {
         return <HomePage onStart={() => setCurrentPage('player-entry')} />;
     }
   };
+
+  // MODAL für Narrator-Modus-Auswahl (überlagert alles, BEVOR Karten aufgedeckt werden)
+  if (showNarratorSelector && assignedRoles.length > 0) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-[#f4f7f9]">
+        <NarratorModeSelector
+          players={assignedRoles}
+          onSelectMode={handleNarratorModeSelection}
+          onBack={() => {
+            setShowNarratorSelector(false);
+            setCurrentPage('role-selection');
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 bg-[#f4f7f9]">
