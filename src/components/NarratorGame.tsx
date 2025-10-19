@@ -1,7 +1,7 @@
-// src/components/NarratorGame.tsx - VOLLSTÄNDIG mit allen Phasen
+// src/components/NarratorGame.tsx - KORRIGIERT MIT ALLEN PHASEN
 
 import React, { useState, useCallback } from 'react';
-import { Player } from '../types';
+import { Player, Role } from '../types';
 import { useTranslation } from '../LanguageContext';
 import CardRevealPage from './CardRevealPage';
 import NarratorSeatingInfo from './NarratorSeatingInfo';
@@ -17,6 +17,8 @@ interface NarratorGameProps {
   onGameEnd: (winner: string) => void;
   onNavigate: (page: 'home') => void;
   onGoToRoleSelection: () => void;
+  thiefExtraRoles: Role[];
+  jesterExtraRoles: Role[];
 }
 
 const NarratorGame: React.FC<NarratorGameProps> = ({
@@ -24,6 +26,8 @@ const NarratorGame: React.FC<NarratorGameProps> = ({
   onGameEnd,
   onNavigate,
   onGoToRoleSelection,
+  thiefExtraRoles,
+  jesterExtraRoles,
 }) => {
   const { t } = useTranslation();
 
@@ -31,15 +35,17 @@ const NarratorGame: React.FC<NarratorGameProps> = ({
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
   const [currentRound, setCurrentRound] = useState(1);
   const [nightDeaths, setNightDeaths] = useState<string[]>([]);
+  const [hunterDeaths, setHunterDeaths] = useState<string[]>([]);
 
-  const handleNightComplete = useCallback((updatedPlayers: Player[]) => {
+  const handleNightComplete = useCallback((updatedPlayers: Player[], deaths: string[], hunters: string[]) => {
     setPlayers(updatedPlayers);
+    setNightDeaths(deaths);
+    setHunterDeaths(hunters);
     setCurrentPhase('day');
   }, []);
 
-  const handleDayComplete = useCallback((updatedPlayers: Player[], deaths: string[]) => {
+  const handleDayComplete = useCallback((updatedPlayers: Player[]) => {
     setPlayers(updatedPlayers);
-    setNightDeaths(deaths);
     setCurrentRound(prev => prev + 1);
     setCurrentPhase('night');
   }, []);
@@ -93,6 +99,8 @@ const NarratorGame: React.FC<NarratorGameProps> = ({
         onNightComplete={handleNightComplete}
         onNavigateHome={onNavigate}
         onRestart={onGoToRoleSelection}
+        thiefExtraRoles={thiefExtraRoles}
+        jesterExtraRoles={jesterExtraRoles}
       />
     );
   }
@@ -103,16 +111,14 @@ const NarratorGame: React.FC<NarratorGameProps> = ({
       <NarratorDayPhase
         players={players}
         nightDeaths={nightDeaths}
+        hunterDeaths={hunterDeaths}
         currentRound={currentRound}
-        onPlayersUpdate={(updatedPlayers) => setPlayers(updatedPlayers)}
-        onContinueToNextRound={(updatedPlayers, deaths) => {
-          handleDayComplete(updatedPlayers, deaths);
+        onContinueToNextNight={handleDayComplete}
+        onGameEnd={(winner) => {
+          onGameEnd(winner);
         }}
-        onGameEnd={onGameEnd}
         onNavigateHome={onNavigate}
         onRestart={onGoToRoleSelection}
-        locale={useTranslation().locale}
-        t={t}
       />
     );
   }

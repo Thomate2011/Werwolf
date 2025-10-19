@@ -1,6 +1,6 @@
-// src/services/GameStateManager.ts - Zentrale Verwaltung aller Spiel-States
+// src/services/GameStateManager.ts - ZENTRALE STATE-VERWALTUNG
 
-import { Player, Role } from '../types';
+import { Player } from '../types';
 
 export interface GameState {
   // Heiler Memory (nur letzte geheilte Person pro Runde)
@@ -66,7 +66,7 @@ export class GameStateManager {
     };
   }
 
-  // Heiler
+  // ============ HEILER ============
   setHealerHeal(playerName: string): void {
     this.state.healerLastHealed = playerName;
   }
@@ -75,7 +75,7 @@ export class GameStateManager {
     return playerName !== this.state.healerLastHealed;
   }
 
-  // Flötenspieler
+  // ============ FLÖTENSPIELER ============
   addPiperEnchanted(playerName: string): void {
     if (!this.state.piperEnchanted.includes(playerName)) {
       this.state.piperEnchanted.push(playerName);
@@ -90,7 +90,7 @@ export class GameStateManager {
     return this.state.piperEnchanted.length;
   }
 
-  // Wolfshund
+  // ============ WOLFSHUND ============
   setWolfhundChoice(choice: 'dorfbewohner' | 'werwolf'): void {
     this.state.wolfhundChoice = choice;
   }
@@ -99,7 +99,7 @@ export class GameStateManager {
     return this.state.wolfhundChoice;
   }
 
-  // Wildes Kind
+  // ============ WILDES KIND ============
   setWildChildModel(playerName: string): void {
     this.state.wildChildModel = playerName;
   }
@@ -108,7 +108,7 @@ export class GameStateManager {
     return this.state.wildChildModel;
   }
 
-  // Verbitterter Greis - Gruppen
+  // ============ VERBITTERTER GREIS - GRUPPEN ============
   setBitterOldManGroups(group1: string[], group2: string[]): void {
     this.state.bitterOldManGroup1 = group1;
     this.state.bitterOldManGroup2 = group2;
@@ -119,9 +119,11 @@ export class GameStateManager {
       return false;
     }
 
+    // Prüfe ob Greis noch lebt
     const bitterOldMans = deadPlayers.filter(p => p.originalRole.id === 'der_verbitterte_greis');
     if (bitterOldMans.length > 0) return false; // Greis ist tot
 
+    // Prüfe ob eine Gruppe komplett tot ist
     const group1AllDead = this.state.bitterOldManGroup1.every(name => 
       deadPlayers.find(p => p.name === name)
     );
@@ -133,7 +135,7 @@ export class GameStateManager {
     return group1AllDead || group2AllDead;
   }
 
-  // Richter
+  // ============ RICHTER ============
   setJudgeCodeword(codeword: string): void {
     this.state.judgeCodeword = codeword;
   }
@@ -142,7 +144,7 @@ export class GameStateManager {
     return this.state.judgeCodeword;
   }
 
-  // Amor
+  // ============ AMOR / VERLIEBTE ============
   setLovers(player1: string, player2: string): void {
     this.state.lovers = [player1, player2];
   }
@@ -158,7 +160,7 @@ export class GameStateManager {
     );
   }
 
-  // Hexe
+  // ============ HEXE - TRÄNKE ============
   useHealPotion(): void {
     this.state.hexeHealPotionUsed = true;
   }
@@ -175,7 +177,7 @@ export class GameStateManager {
     return !this.state.hexePoisonPotionUsed;
   }
 
-  // Obdachlos
+  // ============ OBDACHLOS ============
   setHomelessSleepingAt(playerName: string): void {
     this.state.homelessSleepingAt = playerName;
   }
@@ -184,7 +186,7 @@ export class GameStateManager {
     return this.state.homelessSleepingAt;
   }
 
-  // Fuchs
+  // ============ FUCHS ============
   setFoxLostAbility(): void {
     this.state.foxHasLostAbility = true;
   }
@@ -193,7 +195,7 @@ export class GameStateManager {
     return !this.state.foxHasLostAbility;
   }
 
-  // Ritter
+  // ============ RITTER ============
   setKnightInfected(playerName: string): void {
     this.state.knightInfected = playerName;
   }
@@ -202,7 +204,7 @@ export class GameStateManager {
     return this.state.knightInfected;
   }
 
-  // Bär
+  // ============ BÄRENFÜHRER ============
   setBearAlert(players: string[]): void {
     this.state.bearAlertPlayers = players;
   }
@@ -211,16 +213,41 @@ export class GameStateManager {
     return this.state.bearAlertPlayers;
   }
 
-  // Reset für neue Nacht
+  // ============ RESET FÜR NÄCHSTE RUNDE ============
   resetNightState(): void {
+    // Reset nur die Dinge, die sich pro Nacht ändern
     this.state.homelessSleepingAt = null;
     this.state.knightInfected = null;
+    this.state.bearAlertPlayers = [];
+    // Heiler-Memory bleibt! (für nächste Runde relevant)
   }
 
-  // Vollständiger State
+  // ============ VOLLSTÄNDIGER STATE ============
   getFullState(): GameState {
     return { ...this.state };
   }
+
+  // ============ KOMPLETTER RESET (Neue Partie) ============
+  resetAll(): void {
+    this.state = {
+      healerLastHealed: null,
+      piperEnchanted: [],
+      wolfhundChoice: null,
+      wildChildModel: null,
+      bitterOldManGroup1: [],
+      bitterOldManGroup2: [],
+      bitterOldManHasWon: false,
+      judgeCodeword: null,
+      lovers: [],
+      hexeHealPotionUsed: false,
+      hexePoisonPotionUsed: false,
+      homelessSleepingAt: null,
+      foxHasLostAbility: false,
+      knightInfected: null,
+      bearAlertPlayers: [],
+    };
+  }
 }
 
+// Singleton Instance
 export const gameStateManager = new GameStateManager();

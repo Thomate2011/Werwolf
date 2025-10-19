@@ -1,10 +1,9 @@
-// src/components/CardRevealPage.tsx - Volle Breite, nicht zusammengequetscht
-
 import React, { useState } from 'react';
 import { Player } from '../types';
+import Modal from './Modal';
 import { useTranslation } from '../LanguageContext';
-import { ROLES_CONFIG } from '../constants';
 import LanguageSelector from './LanguageSelector';
+import { ROLES_CONFIG } from '../constants';
 
 interface CardRevealPageProps {
   players: Player[];
@@ -12,14 +11,11 @@ interface CardRevealPageProps {
   narratorMode?: boolean;
 }
 
-const CardRevealPage: React.FC<CardRevealPageProps> = ({ 
-  players, 
-  onComplete,
-  narratorMode = false
-}) => {
+const CardRevealPage: React.FC<CardRevealPageProps> = ({ players, onComplete, narratorMode = false }) => {
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
   const { t } = useTranslation();
   
   const isLastPlayer = currentPlayerIndex === players.length - 1;
@@ -45,10 +41,17 @@ const CardRevealPage: React.FC<CardRevealPageProps> = ({
       setCurrentPlayerIndex(prev => prev + 1);
       setIsRevealed(false);
       setShowDescription(false);
-    } else {
-      onComplete();
     }
   };
+  
+  const handleShowOverview = () => {
+    setShowCompletionModal(true);
+  };
+
+  const handleProceedToOverview = () => {
+    setShowCompletionModal(false);
+    onComplete();
+  }
 
   return (
     <div className="relative w-full min-h-screen bg-white flex items-center justify-center p-4">
@@ -60,9 +63,7 @@ const CardRevealPage: React.FC<CardRevealPageProps> = ({
         <h1 className="text-3xl font-bold mb-8 text-center">{t('card_reveal_title')}</h1>
 
         <div className="w-full border-4 border-dashed border-blue-400 rounded-lg p-8 flex flex-col justify-center items-center text-center min-h-96">
-          {!showDescription && (
-            <p className="text-2xl font-bold mb-6">{currentPlayer.name}</p>
-          )}
+          {!showDescription && <p className="text-2xl font-bold mb-6">{currentPlayer.name}</p>}
           
           {!isRevealed ? (
             <button 
@@ -87,12 +88,21 @@ const CardRevealPage: React.FC<CardRevealPageProps> = ({
                     {t('explanation')}
                   </button>
                 )}
-                <button 
-                  onClick={handleNext} 
-                  className="bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition"
-                >
-                  {isLastPlayer ? t('continue') : t('next')}
-                </button>
+                {!isLastPlayer ? (
+                   <button 
+                     onClick={handleNext} 
+                     className="bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition"
+                   >
+                      {t('next')}
+                   </button>
+                ) : (
+                   <button 
+                     onClick={handleShowOverview} 
+                     className="bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition"
+                   >
+                      {t('continue')}
+                   </button>
+                )}
               </div>
             </>
           )}
@@ -102,6 +112,22 @@ const CardRevealPage: React.FC<CardRevealPageProps> = ({
           Spieler {currentPlayerIndex + 1} / {players.length}
         </div>
       </div>
+      
+      {showCompletionModal && (
+        <Modal 
+          title={t('all_roles_revealed')} 
+          onClose={() => setShowCompletionModal(false)} 
+          isOpaque={true}
+        >
+          <p className="text-center mb-6">{narratorMode ? t('narrator_seating_info_message') : t('give_to_narrator')}</p>
+          <button 
+            onClick={handleProceedToOverview} 
+            className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition"
+          >
+            {t('to_overview')}
+          </button>
+        </Modal>
+      )}
     </div>
   );
 };

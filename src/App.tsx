@@ -1,4 +1,4 @@
-// src/App.tsx - KORRIGIERT: Narrator-Modus VOR Card-Reveal
+// src/App.tsx - KORRIGIERT FÜR NARRATOR-FLOW
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { Page, Player, Role } from './types';
@@ -117,19 +117,11 @@ const App: React.FC = () => {
     setShowNarratorSelector(false);
     if (mode === 'narrator') {
       setNarratorMode(true);
-      setCurrentPage('narrator-seating');
+      setCurrentPage('narrator-game');
     } else {
       setNarratorMode(false);
       setCurrentPage('card-reveal');
     }
-  }, []);
-
-  const handleNarratorSeatingConfirm = useCallback(() => {
-    setCurrentPage('narrator-game-start');
-  }, []);
-
-  const handleNarratorGameStart = useCallback(() => {
-    setCurrentPage('narrator-game');
   }, []);
 
   const handleTogglePlayerStatus = useCallback(
@@ -281,12 +273,6 @@ const App: React.FC = () => {
           />
         );
 
-      case 'narrator-seating':
-        return <NarratorSeatingInfo onConfirm={handleNarratorSeatingConfirm} />;
-
-      case 'narrator-game-start':
-        return <NarratorGameStart onStart={handleNarratorGameStart} />;
-
       case 'narrator-game':
         return (
           <NarratorGame
@@ -297,6 +283,8 @@ const App: React.FC = () => {
             }}
             onNavigate={handleGoHome}
             onGoToRoleSelection={handleGoToRoleSelection}
+            thiefExtraRoles={thiefExtraRoles}
+            jesterExtraRoles={jesterExtraRoles}
           />
         );
 
@@ -336,7 +324,6 @@ const App: React.FC = () => {
     }
   };
 
-  // MODAL für Narrator-Modus-Auswahl (überlagert alles, BEVOR Karten aufgedeckt werden)
   if (showNarratorSelector && assignedRoles.length > 0) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center p-4 bg-[#f4f7f9]">

@@ -1,9 +1,10 @@
-// src/components/NarratorDayPhase.tsx - TAG-PHASE MIT ALLEN FEATURES
+// src/components/NarratorDayPhase.tsx - KOMPLETTE TAG-PHASE MIT GEWINN-CHECKS
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { Player } from '../types';
 import { useTranslation } from '../LanguageContext';
 import { gameStateManager } from '../services/GameStateManager';
+import { NightPhaseLogic } from '../services/NightPhaseLogic';
 import Modal from './Modal';
 import LanguageSelector from './LanguageSelector';
 import { ROLES_CONFIG } from '../constants';
@@ -13,34 +14,33 @@ type DayPhase = 'deaths' | 'maid_action' | 'hunter_action' | 'discussion' | 'vot
 interface NarratorDayPhaseProps {
   players: Player[];
   nightDeaths: string[];
+  hunterDeaths: string[];
   currentRound: number;
-  onPlayersUpdate: (players: Player[]) => void;
-  onContinueToNextRound: (players: Player[], deaths: string[]) => void;
+  onContinueToNextNight: (players: Player[]) => void;
   onGameEnd: (winner: string) => void;
   onNavigateHome: () => void;
   onRestart: () => void;
-  locale: string;
-  t: (key: string) => string;
 }
 
 const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
   players,
   nightDeaths,
+  hunterDeaths,
   currentRound,
-  onPlayersUpdate,
-  onContinueToNextRound,
+  onContinueToNextNight,
   onGameEnd,
   onNavigateHome,
   onRestart,
-  locale,
-  t,
 }) => {
+  const { t } = useTranslation();
+
   const [dayPhase, setDayPhase] = useState<DayPhase>('deaths');
   const [modifiedPlayers, setModifiedPlayers] = useState<Player[]>(players);
-  const [showMaidAction, setShowMaidAction] = useState(false);
-  const [showHunterAction, setShowHunterAction] = useState(false);
-  const [showVoting, setShowVoting] = useState(false);
-  const [selectedForVoting, setSelectedForVoting] = useState<string | null>(null);
+  const [showMaidModal, setShowMaidModal] = useState(false);
+  const [showHunterModal, setShowHunterModal] = useState(false);
+  const [showVotingModal, setShowVotingModal] = useState(false);
+  const [votingResult, setVotingResult] = useState<string | null>(null);
+  const [gameWinner, setGameWinner] = useState<string | null>(null);
 
   const getRoleInfo = (roleId: string) => {
     const roleConfig = ROLES_CONFIG.find((r) => r.id === roleId);
@@ -48,59 +48,189 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
     return { name: t(roleConfig.nameKey) };
   };
 
-  const getAlivePlayers = useMemo(
-    () => modifiedPlayers.filter((p) => p.status === 'alive'),
-    [modifiedPlayers]
-  );
+  const getAlivePlayers = useMemo(() => modifiedPlayers.filter((p) => p.status === 'alive'), [modifiedPlayers]);
+  const getDeadPlayers = useMemo(() => modifiedPlayers.filter((p) => p.status === 'dead'), [modifiedPlayers]);
 
-  const hasMaid = modifiedPlayers.some(p => p.originalRole.id === 'ergebene_magd' && p.status === 'alive');
-  const hasHunterInDeaths = nightDeaths.some(name => {
-    const player = modifiedPlayers.find(p => p.name === name);
-    return player?.originalRole.id === 'jaeger';
-  });
+  // ============ GEWINN-BEDINGUNGEN ============
+  const checkWinConditions = useCallback((currentPlayers: Player[]): string | null => {
+    const alive = currentPlayers.filter((p) => p.status === 'alive');
+    const werewolves = alive.filter((p) => NightPhaseLogic.isWerewolf(p.name, currentPlayers));
+    const villagers = alive.filter((p) => !NightPhaseLogic.isWerewolf(p.name, currentPlayers));
 
-  const handleMaidAction = useCallback((targetName: string) => {
-    const newPlayers = [...modifiedPlayers];
-    const maidIndex = newPlayers.findIndex(p => p.originalRole.id === 'ergebene_magd' && p.status === 'alive');
-    const targetIndex = newPlayers.findIndex(p => p.name === targetName);
+    // 1. Werwölfe >= Dorfbewohner → Werwölfe gewinnen
+    if (werewolves.length >= villagers.length) {
+      return t('narrator_win_werewolves_end');
+    }
 
-    if (maidIndex !== -1 && targetIndex !== -1) {
+    // 2. Keine Werwölfe mehr → Dorfbewohner gewinnen
+    if (werewolves.length === 0) {
+      return t('narrator_win_villagers_end');
+    }
+
+    // 3. Weißer Wolf allein → Weißer Wolf gewinnt
+    const whiteWolf = alive.find((p) => p.role.id === 'der_weisse_werwolf');
+    if (whiteWolf && werewolves.length === 1) {
+      return t('narrator_win_white_wolf_end');
+    }
+
+    // 4. Flötenspieler alle verzaubert → Flötenspieler gewinnt
+    const piper = alive.find((p) => p.originalRole.id === 'floetenspieler');
+    if (piper && gameStateManager.getPiperEnchantedCount() === alive.length) {
+      return t('narrator_win_piper_end');
+    }
+
+    // 5. Engel in R1 per Abstimmung gestorben → Engel gewinnt (wird separat gehandhabt)
+
+    // 6. Verbitterter Greis Gruppe eliminiert → Greis gewinnt
+    if (gameStateManager.checkBitterOldManWin(currentPlayers.filter((p) => p.status === 'dead'))) {
+      return t('narrator_win_bitter_old_man_end');
+    }
+
+    // 7. Verliebte nur noch 2 → Verliebte gewinnen
+    const lovers = gameStateManager.getLovers();
+    if (lovers.length === 2) {
+      const aliveLoveCount = alive.filter((p) => lovers.includes(p.name)).length;
+      if (aliveLoveCount === 2 && alive.length === 2) {
+        return t('narrator_win_lovers_end');
+      }
+    }
+
+    return null;
+  }, [t]);
+
+  // ============ MAID ACTION ============
+  const handleMaidAction = (deadPlayerName: string) => {
+    const maid = modifiedPlayers.find((p) => p.role.id === 'ergebene_magd' && p.status === 'alive');
+    const deadPlayer = modifiedPlayers.find((p) => p.name === deadPlayerName && p.status === 'dead');
+
+    if (maid && deadPlayer) {
+      const newPlayers = [...modifiedPlayers];
+      const maidIdx = newPlayers.findIndex((p) => p.name === maid.name);
+      const deadIdx = newPlayers.findIndex((p) => p.name === deadPlayer.name);
+
       // Maid nimmt Rolle des Toten an
-      const targetRole = newPlayers[targetIndex].role;
-      newPlayers[maidIndex].role = targetRole;
+      if (maidIdx !== -1 && deadIdx !== -1) {
+        newPlayers[maidIdx].role = newPlayers[deadIdx].role;
+      }
+
+      setModifiedPlayers(newPlayers);
     }
 
-    setModifiedPlayers(newPlayers);
-    setShowMaidAction(false);
-  }, [modifiedPlayers]);
+    setShowMaidModal(false);
+  };
 
-  const handleHunterShot = useCallback((targetName: string) => {
+  // ============ HUNTER ACTION ============
+  const handleHunterShot = (targetName: string) => {
     const newPlayers = [...modifiedPlayers];
-    const targetIndex = newPlayers.findIndex(p => p.name === targetName);
+    const targetIdx = newPlayers.findIndex((p) => p.name === targetName);
 
-    if (targetIndex !== -1) {
-      newPlayers[targetIndex].status = 'dead';
+    if (targetIdx !== -1) {
+      newPlayers[targetIdx].status = 'dead';
     }
 
     setModifiedPlayers(newPlayers);
-    setShowHunterAction(false);
-  }, [modifiedPlayers]);
+    setShowHunterModal(false);
 
-  const handleVote = useCallback((playerName: string) => {
+    // Gewinn-Check nach Jäger-Schuss
+    const winner = checkWinConditions(newPlayers);
+    if (winner) {
+      setGameWinner(winner);
+      setDayPhase('game_over');
+    }
+  };
+
+  // ============ VOTING ============
+  const handleVoting = (selectedName: string) => {
     const newPlayers = [...modifiedPlayers];
-    const playerIndex = newPlayers.findIndex(p => p.name === playerName);
+    const selectedIdx = newPlayers.findIndex((p) => p.name === selectedName);
 
-    if (playerIndex !== -1) {
-      newPlayers[playerIndex].status = 'dead';
+    if (selectedIdx !== -1) {
+      newPlayers[selectedIdx].status = 'dead';
+      setVotingResult(selectedName);
+
+      // Checks nach Vote
+      let playersAfterVote = newPlayers;
+
+      // Engel in R1 per Abstimmung → Engel gewinnt
+      const votedPlayer = newPlayers[selectedIdx];
+      if (currentRound === 1 && votedPlayer.originalRole.id === 'der_engel') {
+        setGameWinner(t('narrator_win_angel_end'));
+        setDayPhase('game_over');
+        setModifiedPlayers(playersAfterVote);
+        setShowVotingModal(false);
+        return;
+      }
+
+      // Jäger stirbt → Jäger schießt
+      if (votedPlayer.originalRole.id === 'jaeger') {
+        setShowHunterModal(true);
+        setModifiedPlayers(playersAfterVote);
+        setShowVotingModal(false);
+        return;
+      }
+
+      // Verliebte sterben zusammen
+      const lovers = gameStateManager.getLovers();
+      if (lovers.includes(votedPlayer.name)) {
+        const otherLover = lovers.find((n) => n !== votedPlayer.name);
+        if (otherLover) {
+          const otherIdx = playersAfterVote.findIndex((p) => p.name === otherLover);
+          if (otherIdx !== -1) {
+            playersAfterVote[otherIdx].status = 'dead';
+          }
+        }
+      }
+
+      setModifiedPlayers(playersAfterVote);
+
+      // Gewinn-Check nach Vote
+      const winner = checkWinConditions(playersAfterVote);
+      if (winner) {
+        setGameWinner(winner);
+        setDayPhase('game_over');
+        setShowVotingModal(false);
+        return;
+      }
+
+      setShowVotingModal(false);
+      setDayPhase('game_over'); // Für jetzt: Tag zu Ende
     }
+  };
 
-    setModifiedPlayers(newPlayers);
-    setSelectedForVoting(playerName);
-    setShowVoting(false);
-  }, [modifiedPlayers]);
+  // ============ RENDER PHASES ============
 
-  // Phase: Deaths
   if (dayPhase === 'deaths') {
+    const hasMaid = modifiedPlayers.some((p) => p.role.id === 'ergebene_magd' && p.status === 'alive');
+
+    // Gewinn-Check nach Nacht-Tode
+    const winner = checkWinConditions(modifiedPlayers);
+    if (winner) {
+      return (
+        <div className="relative">
+          <div className="absolute top-4 right-4 z-50">
+            <LanguageSelector />
+          </div>
+          <div className="w-full max-w-lg mx-auto bg-white rounded-xl shadow-lg p-8 text-[#333]">
+            <h1 className="text-3xl font-bold mb-6 text-center text-green-700">{winner}</h1>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={onRestart}
+                className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700"
+              >
+                {t('restart')}
+              </button>
+              <button
+                onClick={onNavigateHome}
+                className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700"
+              >
+                {t('to_homepage')}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="relative">
         <div className="absolute top-4 right-4 z-50">
@@ -108,9 +238,7 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
         </div>
 
         <div className="w-full max-w-lg mx-auto bg-white rounded-xl shadow-lg p-8 text-[#333]">
-          <h1 className="text-2xl font-bold mb-4 text-center text-yellow-700">
-            ☀️ Tagesphase - Runde {currentRound}
-          </h1>
+          <h1 className="text-2xl font-bold mb-4 text-center text-yellow-700">☀️ Tagesphase</h1>
 
           <div className="bg-red-50 p-4 rounded-lg mb-6">
             <p className="font-bold mb-2">{t('narrator_day_deaths_title')}</p>
@@ -127,142 +255,68 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
             )}
           </div>
 
-          {/* Maid Button */}
           {hasMaid && (
             <button
-              onClick={() => setShowMaidAction(true)}
+              onClick={() => setShowMaidModal(true)}
               className="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700 transition mb-4"
             >
-              {t('narrator_day_maid_choice')}
+              {t('narrator_day_maid_button')}
             </button>
           )}
-
-          {/* Continue Button */}
-          <button
-            onClick={() => {
-              if (hasHunterInDeaths) {
-                setDayPhase('hunter_action');
-              } else {
-                setDayPhase('discussion');
-              }
-            }}
-            className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition"
-          >
-            {t('next')}
-          </button>
-        </div>
-
-        {/* Maid Modal */}
-        {showMaidAction && (
-          <Modal
-            title={t('narrator_day_maid_choice')}
-            onClose={() => setShowMaidAction(false)}
-            isOpaque={true}
-          >
-            <p className="mb-4 font-semibold">{t('narrator_day_maid_choice')}</p>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {nightDeaths.map((name) => (
-                <button
-                  key={name}
-                  onClick={() => handleMaidAction(name)}
-                  className="w-full p-3 bg-gray-100 text-left rounded-lg hover:bg-gray-200"
-                >
-                  {name}
-                </button>
-              ))}
-            </div>
-          </Modal>
-        )}
-      </div>
-    );
-  }
-
-  // Phase: Hunter Action
-  if (dayPhase === 'hunter_action') {
-    return (
-      <div className="relative">
-        <div className="absolute top-4 right-4 z-50">
-          <LanguageSelector />
-        </div>
-
-        <div className="w-full max-w-lg mx-auto bg-white rounded-xl shadow-lg p-8 text-[#333]">
-          <h1 className="text-2xl font-bold mb-4 text-center text-yellow-700">
-            ☀️ Jäger-Schuss
-          </h1>
-
-          <div className="bg-orange-50 p-4 rounded-lg mb-6">
-            <p className="font-bold mb-2">{t('narrator_day_hunter_shoots')}</p>
-            <p className="text-gray-700 text-sm">Wähle ein Opfer für den Jäger.</p>
-          </div>
-
-          <button
-            onClick={() => setShowHunterAction(true)}
-            className="w-full bg-orange-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-orange-700 transition mb-4"
-          >
-            Jäger wählen
-          </button>
-
-          <button
-            onClick={() => setDayPhase('discussion')}
-            className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition"
-          >
-            {t('next')}
-          </button>
-        </div>
-
-        {showHunterAction && (
-          <Modal
-            title="Jäger wählen"
-            onClose={() => setShowHunterAction(false)}
-            isOpaque={true}
-          >
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {getAlivePlayers.map((player) => (
-                <button
-                  key={player.name}
-                  onClick={() => handleHunterShot(player.name)}
-                  className="w-full p-3 bg-gray-100 text-left rounded-lg hover:bg-gray-200"
-                >
-                  {player.name}
-                </button>
-              ))}
-            </div>
-          </Modal>
-        )}
-      </div>
-    );
-  }
-
-  // Phase: Discussion
-  if (dayPhase === 'discussion') {
-    return (
-      <div className="relative">
-        <div className="absolute top-4 right-4 z-50">
-          <LanguageSelector />
-        </div>
-
-        <div className="w-full max-w-lg mx-auto bg-white rounded-xl shadow-lg p-8 text-[#333]">
-          <h1 className="text-2xl font-bold mb-4 text-center text-yellow-700">
-            ☀️ Diskussionsphase
-          </h1>
-
-          <div className="bg-blue-50 p-4 rounded-lg mb-6">
-            <p className="font-bold mb-2">{t('narrator_day_discussion')}</p>
-            <p className="text-gray-700 text-sm">Besprecht, wer der Werwolf sein könnte.</p>
-          </div>
 
           <button
             onClick={() => setDayPhase('voting')}
             className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition"
           >
-            Zur Abstimmung
+            {t('next')}
           </button>
+
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <div className="text-center">
+              <button
+                onClick={onRestart}
+                className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700"
+              >
+                {t('restart')}
+              </button>
+              <p className="text-xs text-gray-500 mt-1">{t('restart_info')}</p>
+            </div>
+            <div className="text-center">
+              <button
+                onClick={onNavigateHome}
+                className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700"
+              >
+                {t('to_homepage')}
+              </button>
+              <p className="text-xs text-gray-500 mt-1">{t('homepage_info')}</p>
+            </div>
+          </div>
         </div>
+
+        {showMaidModal && (
+          <Modal
+            title={t('narrator_day_maid_button')}
+            onClose={() => setShowMaidModal(false)}
+            isOpaque={true}
+          >
+            <p className="mb-4 font-semibold">{t('narrator_day_maid_select_dead')}</p>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {getDeadPlayers.map((p) => (
+                <button
+                  key={p.name}
+                  onClick={() => handleMaidAction(p.name)}
+                  className="w-full p-3 bg-gray-100 text-left rounded-lg hover:bg-gray-200"
+                >
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          </Modal>
+        )}
       </div>
     );
   }
 
-  // Phase: Voting
   if (dayPhase === 'voting') {
     return (
       <div className="relative">
@@ -271,41 +325,111 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
         </div>
 
         <div className="w-full max-w-lg mx-auto bg-white rounded-xl shadow-lg p-8 text-[#333]">
-          <h1 className="text-2xl font-bold mb-4 text-center text-yellow-700">
-            ☀️ Abstimmung
-          </h1>
+          <h1 className="text-2xl font-bold mb-4 text-center text-yellow-700">☀️ Abstimmung</h1>
 
-          <div className="bg-blue-50 p-4 rounded-lg mb-6">
-            <p className="font-bold mb-2">{t('narrator_day_voting')}</p>
-          </div>
+          <p className="text-center text-gray-600 mb-6">{t('narrator_day_voting')}</p>
 
           <button
-            onClick={() => setShowVoting(true)}
-            className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition"
+            onClick={() => setShowVotingModal(true)}
+            className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition mb-4"
           >
-            Person wählen
+            {t('narrator_day_voting_select')}
           </button>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="text-center">
+              <button
+                onClick={onRestart}
+                className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700"
+              >
+                {t('restart')}
+              </button>
+              <p className="text-xs text-gray-500 mt-1">{t('restart_info')}</p>
+            </div>
+            <div className="text-center">
+              <button
+                onClick={onNavigateHome}
+                className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700"
+              >
+                {t('to_homepage')}
+              </button>
+              <p className="text-xs text-gray-500 mt-1">{t('homepage_info')}</p>
+            </div>
+          </div>
         </div>
 
-        {showVoting && (
+        {showVotingModal && (
           <Modal
-            title="Abstimmung"
-            onClose={() => setShowVoting(false)}
+            title={t('narrator_day_voting_select')}
+            onClose={() => setShowVotingModal(false)}
             isOpaque={true}
           >
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {getAlivePlayers.map((player) => (
+              {getAlivePlayers.map((p) => (
                 <button
-                  key={player.name}
-                  onClick={() => handleVote(player.name)}
+                  key={p.name}
+                  onClick={() => handleVoting(p.name)}
                   className="w-full p-3 bg-gray-100 text-left rounded-lg hover:bg-gray-200"
                 >
-                  {player.name}
+                  {p.name}
                 </button>
               ))}
             </div>
           </Modal>
         )}
+
+        {showHunterModal && (
+          <Modal
+            title={t('narrator_day_hunter_shoots')}
+            onClose={() => setShowHunterModal(false)}
+            isOpaque={true}
+          >
+            <p className="mb-4">{t('narrator_day_hunter_shoots')}</p>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {getAlivePlayers
+                .filter((p) => !hunterDeaths.includes(p.name))
+                .map((p) => (
+                  <button
+                    key={p.name}
+                    onClick={() => handleHunterShot(p.name)}
+                    className="w-full p-3 bg-orange-100 text-left rounded-lg hover:bg-orange-200"
+                  >
+                    {p.name}
+                  </button>
+                ))}
+            </div>
+          </Modal>
+        )}
+      </div>
+    );
+  }
+
+  if (dayPhase === 'game_over') {
+    return (
+      <div className="relative">
+        <div className="absolute top-4 right-4 z-50">
+          <LanguageSelector />
+        </div>
+
+        <div className="w-full max-w-lg mx-auto bg-white rounded-xl shadow-lg p-8 text-[#333]">
+          <h1 className="text-3xl font-bold mb-6 text-center text-green-700">🎉</h1>
+          <p className="text-2xl font-bold text-center mb-8">{gameWinner}</p>
+
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={onRestart}
+              className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700"
+            >
+              {t('restart')}
+            </button>
+            <button
+              onClick={onNavigateHome}
+              className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700"
+            >
+              {t('to_homepage')}
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

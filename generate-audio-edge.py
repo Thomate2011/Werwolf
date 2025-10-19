@@ -121,16 +121,31 @@ texts = {
 
 
 voices = {
-    "pt": "pt-BR-AntonioNeural",
+    "de": "de-DE-ConradNeural",
+    "en": "en-US-GuyNeural",
+    "fr": "fr-FR-HenriNeural",
+    "es": "es-ES-AlvaroNeural",
+    "pt": "pt-PT-AntonioNeural",
     "it": "it-IT-AlessioMultilingualNeural",
+    "ru": "ru-RU-DmitryNeural",
+    "is": "is-IS-GunnarNeural",
     "sv": "sv-SE-MattiasNeural",
-    "ar": "ar-AE-HamdanNeural",
+    "zh-CN": "zh-CN-YunfengNeural",
+    "ja": "ja-JP-KeitaNeural",
+    "tr": "tr-TR-AhmetNeural",
+    "ar": "ar-SA-HamdanNeural",
+    "ko": "ko-KR-InJoonNeural",
     "hi": "hi-IN-AaravNeural",
     "bn": "bn-IN-BashkarNeural",
     "pl": "pl-PL-MarekNeural",
-    "nl": "nl-NL-MaartenNeural",
+    "da": "da-DK-JeppeNeural",
+    "cs": "cs-CZ-AntoninNeural",
+    "fi": "fi-FI-HarriNeural",
+    "nb": "no-NO-FinnNeural",
+    "ro": "ro-RO-EmilNeural",
     "he": "he-IL-AvriNeural",
-    "nb": "nb-NO-FinnNeural",
+    "hu": "hu-HU-TamasNeural",
+    "nl": "nl-NL-MaartenNeural"
 }
 
 
