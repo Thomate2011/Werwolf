@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from '../LanguageContext';
 import { audioManager } from '../services/AudioManager';
 import LanguageSelector from './LanguageSelector';
@@ -11,29 +11,32 @@ const NarratorGameStart: React.FC<NarratorGameStartProps> = ({ onStart }) => {
   const { t, locale } = useTranslation();
   const [audioPlayed, setAudioPlayed] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const audioAttemptRef = useRef(false);
 
   useEffect(() => {
-    if (!audioPlayed && !isPlaying) {
-      setIsPlaying(true);
-      audioManager.playAudio(
-        locale as any,
-        'narrator_intro',
-        () => {
-          setIsPlaying(false);
-          setAudioPlayed(true);
-        },
-        (error) => {
-          console.error('Audio error:', error);
-          setIsPlaying(false);
-          setAudioPlayed(true); // Trotzdem weitermachen
-        }
-      );
-    }
+    // NUR EINMAL versuchen zu spielen
+    if (audioAttemptRef.current) return;
+    audioAttemptRef.current = true;
 
-    return () => {
-      audioManager.stopAudio();
-    };
-  }, [audioPlayed, isPlaying, locale]);
+    setIsPlaying(true);
+    audioManager.playAudio(
+      locale as any,
+      'narrator_intro',
+      () => {
+        // Erfolgreich abgespielt
+        setIsPlaying(false);
+        setAudioPlayed(true);
+      },
+      (error) => {
+        // Fehler → trotzdem weitermachen
+        console.error('Audio error:', error);
+        setIsPlaying(false);
+        setAudioPlayed(true); // Button aktivieren!
+      }
+    );
+
+    // ✅ KEINE cleanup Funktion die Audio stoppt!
+  }, [locale]);
 
   return (
     <div className="relative w-full min-h-screen bg-white flex items-center justify-center p-4">

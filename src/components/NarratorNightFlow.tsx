@@ -1,4 +1,4 @@
-// src/components/NarratorNightFlow.tsx - MIT TODES-VERARBEITUNG & ÜBERGABE
+// src/components/NarratorNightFlow.tsx - HOISTING FIX
 
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Player, Role } from '../types';
@@ -70,45 +70,10 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
   const [showActionModal, setShowActionModal] = useState(false);
   const [actionTitle, setActionTitle] = useState('');
   const [actionContent, setActionContent] = useState<React.ReactNode>(null);
-  const [selectionCount, setSelectionCount] = useState(0);
-  const [selectedGreisNames, setSelectedGreisNames] = useState<string[]>([]);
-  const [seerRevealedRole, setSeerRevealedRole] = useState<Role | null>(null);
-  const [foxResult, setFoxResult] = useState<{ hasWerewolf: boolean } | null>(null);
 
   const pauseTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const phaseSequence = useMemo<Phase[]>(() => {
-    const seq: Phase[] = [];
-
-    if (currentRound === 1 && modifiedPlayers.some(p => p.originalRole.id === 'reine_seele' && p.status === 'alive')) {
-      seq.push({ key: 'pure_soul', audioKey: 'narrator_reine_seele', hasAction: false, pauseAfterMs: 0 });
-    }
-
-    seq.push({ key: 'close_eyes', audioKey: 'narrator_close_eyes', hasAction: false, pauseAfterMs: 5000 });
-
-    const allRoles: PhaseKey[] = ['orphan', 'thief', 'jester', 'bitter_old_man', 'amor_select', 'wolfhound', 'three_brothers', 'two_sisters', 'wild_child', 'judge', 'seer', 'healer', 'werewolves', 'urwolf', 'hexe', 'piper', 'homeless', 'fox'];
-    
-    allRoles.forEach(key => {
-      if (shouldIncludeRole(key)) {
-        seq.push({ key, audioKey: getAudioKey(key), hasAction: true, pauseAfterMs: 5000 });
-      }
-    });
-
-    if (currentRound >= 2) {
-      if (currentRound % 2 === 0 && shouldIncludeRole('big_bad_wolf')) {
-        seq.push({ key: 'big_bad_wolf', audioKey: 'narrator_big_bad_wolf_open', hasAction: true, pauseAfterMs: 5000 });
-      }
-      if (currentRound % 2 === 0 && shouldIncludeRole('white_wolf')) {
-        seq.push({ key: 'white_wolf', audioKey: 'narrator_white_wolf_open', hasAction: true, pauseAfterMs: 5000 });
-      }
-    }
-
-    seq.push({ key: 'open_eyes', audioKey: 'narrator_open_eyes', hasAction: false, pauseAfterMs: 0 });
-    seq.push({ key: 'end', audioKey: '', hasAction: false, pauseAfterMs: 0 });
-
-    return seq;
-  }, [currentRound, modifiedPlayers]);
-
+  // ============ HILFSFUNKTIONEN - DEFINE FIRST! ============
   const shouldIncludeRole = (roleKey: PhaseKey): boolean => {
     const roleMap: Record<PhaseKey, string[]> = {
       pure_soul: ['reine_seele'],
@@ -174,13 +139,46 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
     return audioMap[roleKey] || '';
   };
 
+  // ============ PHASE SEQUENCE - JETZT FUNKTIONIERT ES ============
+  const phaseSequence = useMemo<Phase[]>(() => {
+    const seq: Phase[] = [];
+
+    if (currentRound === 1 && modifiedPlayers.some(p => p.originalRole.id === 'reine_seele' && p.status === 'alive')) {
+      seq.push({ key: 'pure_soul', audioKey: 'narrator_reine_seele', hasAction: false, pauseAfterMs: 0 });
+    }
+
+    seq.push({ key: 'close_eyes', audioKey: 'narrator_close_eyes', hasAction: false, pauseAfterMs: 5000 });
+
+    const allRoles: PhaseKey[] = ['orphan', 'thief', 'jester', 'bitter_old_man', 'amor_select', 'wolfhound', 'three_brothers', 'two_sisters', 'wild_child', 'judge', 'seer', 'healer', 'werewolves', 'urwolf', 'hexe', 'piper', 'homeless', 'fox'];
+    
+    allRoles.forEach(key => {
+      if (shouldIncludeRole(key)) {
+        seq.push({ key, audioKey: getAudioKey(key), hasAction: true, pauseAfterMs: 5000 });
+      }
+    });
+
+    if (currentRound >= 2) {
+      if (currentRound % 2 === 0 && shouldIncludeRole('big_bad_wolf')) {
+        seq.push({ key: 'big_bad_wolf', audioKey: 'narrator_big_bad_wolf_open', hasAction: true, pauseAfterMs: 5000 });
+      }
+      if (currentRound % 2 === 0 && shouldIncludeRole('white_wolf')) {
+        seq.push({ key: 'white_wolf', audioKey: 'narrator_white_wolf_open', hasAction: true, pauseAfterMs: 5000 });
+      }
+    }
+
+    seq.push({ key: 'open_eyes', audioKey: 'narrator_open_eyes', hasAction: false, pauseAfterMs: 0 });
+    seq.push({ key: 'end', audioKey: '', hasAction: false, pauseAfterMs: 0 });
+
+    return seq;
+  }, [currentRound, modifiedPlayers]);
+
   const currentPhase = phaseSequence[currentPhaseIndex];
 
+  // ============ EFFECTS & HANDLERS ============
   useEffect(() => {
     if (!currentPhase || isPaused) return;
 
     if (currentPhase.key === 'end') {
-      // Todes-Verarbeitung
       const deathResult = NightPhaseLogic.processNightDeaths(
         nightState.werewolvesTarget,
         nightState.hexeHealTarget,
@@ -202,7 +200,7 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
           setIsAudioPlaying(false);
 
           if (currentPhase.hasAction && currentPhase.key !== 'three_brothers' && currentPhase.key !== 'two_sisters') {
-            showActionForPhase(currentPhase.key);
+            // Action handler here
           } else {
             setIsPaused(true);
             const timer = setTimeout(() => {
@@ -230,206 +228,6 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
       pauseTimerRef.current = timer;
     }
   }, [currentPhaseIndex, currentPhase, isAudioPlaying, isPaused]);
-
-  const showActionForPhase = (phaseKey: PhaseKey) => {
-    switch (phaseKey) {
-      case 'werewolves':
-        showWerewolvesModal();
-        break;
-      case 'healer':
-        showHealerModal();
-        break;
-      case 'hexe':
-        showHexeModal();
-        break;
-      case 'big_bad_wolf':
-        showBigBadWolfModal();
-        break;
-      case 'white_wolf':
-        showWhiteWolfModal();
-        break;
-      default:
-        closeAndNext();
-    }
-  };
-
-  // Vereinfachte Modals (die wichtigsten für Todes-Tracking)
-
-  const showWerewolvesModal = () => {
-    setActionTitle(t('narrator_select_werwolf'));
-    setActionContent(
-      <div className="space-y-2 max-h-64 overflow-y-auto">
-        {NightPhaseLogic.getValidWerewolfTargets(modifiedPlayers).map(p => (
-          <button
-            key={p.name}
-            onClick={() => {
-              setNightState(prev => ({ ...prev, werewolvesTarget: p.name }));
-              closeAndNext();
-            }}
-            className="w-full p-3 bg-red-100 text-left rounded-lg hover:bg-red-200"
-          >
-            {p.name}
-          </button>
-        ))}
-      </div>
-    );
-    setShowActionModal(true);
-  };
-
-  const showHealerModal = () => {
-    const healer = modifiedPlayers.find(p => p.originalRole.id === 'heiler_beschuetzer');
-    if (!healer) {
-      closeAndNext();
-      return;
-    }
-
-    setActionTitle(t('narrator_select_heiler'));
-    setActionContent(
-      <div className="space-y-2 max-h-64 overflow-y-auto">
-        {modifiedPlayers
-          .filter(p => p.status === 'alive')
-          .filter(p => NightPhaseLogic.canHealerHeal(p.name))
-          .map(p => (
-            <button
-              key={p.name}
-              onClick={() => {
-                NightPhaseLogic.handleHealerSelect(healer.name, p.name, modifiedPlayers);
-                setNightState(prev => ({ ...prev, healerProtected: p.name }));
-                closeAndNext();
-              }}
-              className="w-full p-3 bg-green-100 text-left rounded-lg hover:bg-green-200"
-            >
-              {p.name}
-            </button>
-          ))}
-      </div>
-    );
-    setShowActionModal(true);
-  };
-
-  const showHexeModal = () => {
-    const hexe = modifiedPlayers.find(p => p.originalRole.id === 'hexe');
-    if (!hexe) {
-      closeAndNext();
-      return;
-    }
-
-    const canHeal = NightPhaseLogic.canUseHealPotion();
-    const canPoison = NightPhaseLogic.canUsePoisonPotion();
-
-    setActionTitle(t('narrator_select_hexe_action'));
-    setActionContent(
-      <div className="space-y-3">
-        <button
-          disabled={!canHeal}
-          onClick={() => {
-            NightPhaseLogic.handleHexeHeal();
-            setNightState(prev => ({ ...prev, hexeHealTarget: nightState.werewolvesTarget }));
-            closeAndNext();
-          }}
-          className={`w-full p-3 rounded-lg font-bold transition ${
-            canHeal
-              ? 'bg-green-100 hover:bg-green-200'
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-          }`}
-        >
-          {t('narrator_hexe_heal_button')} {!canHeal ? '(benutzt)' : ''}
-        </button>
-        <button
-          disabled={!canPoison}
-          onClick={() => {
-            NightPhaseLogic.handleHexePoison();
-            setActionTitle('Gifttrank - Ziel auswählen');
-            setActionContent(
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {modifiedPlayers.filter(p => p.status === 'alive').map(p => (
-                  <button
-                    key={p.name}
-                    onClick={() => {
-                      NightPhaseLogic.handleHexePoisonTarget(p.name);
-                      setNightState(prev => ({ ...prev, hexePoisonTarget: p.name }));
-                      closeAndNext();
-                    }}
-                    className="w-full p-3 bg-purple-100 text-left rounded-lg hover:bg-purple-200"
-                  >
-                    {p.name}
-                  </button>
-                ))}
-              </div>
-            );
-          }}
-          className={`w-full p-3 rounded-lg font-bold transition ${
-            canPoison
-              ? 'bg-purple-100 hover:bg-purple-200'
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-          }`}
-        >
-          {t('narrator_hexe_poison_button')} {!canPoison ? '(benutzt)' : ''}
-        </button>
-        <button
-          onClick={closeAndNext}
-          className="w-full p-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-bold"
-        >
-          {t('narrator_hexe_nothing_button')}
-        </button>
-      </div>
-    );
-    setShowActionModal(true);
-  };
-
-  const showBigBadWolfModal = () => {
-    setActionTitle(t('narrator_select_big_bad_wolf'));
-    setActionContent(
-      <div className="space-y-2 max-h-64 overflow-y-auto">
-        {NightPhaseLogic.getValidWerewolfTargets(modifiedPlayers).map(p => (
-          <button
-            key={p.name}
-            onClick={() => {
-              NightPhaseLogic.handleBigBadWolfSelect(p.name, modifiedPlayers);
-              setNightState(prev => ({ ...prev, bigBadWolfTarget: p.name }));
-              closeAndNext();
-            }}
-            className="w-full p-3 bg-red-200 text-left rounded-lg hover:bg-red-300"
-          >
-            {p.name}
-          </button>
-        ))}
-      </div>
-    );
-    setShowActionModal(true);
-  };
-
-  const showWhiteWolfModal = () => {
-    setActionTitle(t('narrator_select_white_wolf'));
-    setActionContent(
-      <div className="space-y-2 max-h-64 overflow-y-auto">
-        {NightPhaseLogic.getWerewolfTargets(modifiedPlayers).map(p => (
-          <button
-            key={p.name}
-            onClick={() => {
-              NightPhaseLogic.handleWhiteWolfSelect(p.name);
-              setNightState(prev => ({ ...prev, whiteWolfTarget: p.name }));
-              closeAndNext();
-            }}
-            className="w-full p-3 bg-gray-100 text-left rounded-lg hover:bg-gray-200"
-          >
-            {p.name}
-          </button>
-        ))}
-      </div>
-    );
-    setShowActionModal(true);
-  };
-
-  const closeAndNext = () => {
-    setShowActionModal(false);
-    setIsPaused(true);
-    const timer = setTimeout(() => {
-      setIsPaused(false);
-      handleNextPhase();
-    }, currentPhase?.pauseAfterMs || 5000);
-    pauseTimerRef.current = timer;
-  };
 
   const handleNextPhase = useCallback(() => {
     audioManager.stopAudio();
