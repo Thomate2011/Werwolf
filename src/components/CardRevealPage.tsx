@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Player } from '../types';
-import Modal from './Modal';
 import { useTranslation } from '../LanguageContext';
 import LanguageSelector from './LanguageSelector';
 import { ROLES_CONFIG } from '../constants';
@@ -8,18 +7,17 @@ import { ROLES_CONFIG } from '../constants';
 interface CardRevealPageProps {
   players: Player[];
   onComplete: () => void;
-  narratorMode?: boolean;
+  narratorMode: boolean;
 }
 
 const CardRevealPage: React.FC<CardRevealPageProps> = ({ 
   players, 
   onComplete,
-  narratorMode = false 
+  narratorMode
 }) => {
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
-  const [showCompletionModal, setShowCompletionModal] = useState(false);
   const { t } = useTranslation();
   
   const isLastPlayer = currentPlayerIndex === players.length - 1;
@@ -49,16 +47,17 @@ const CardRevealPage: React.FC<CardRevealPageProps> = ({
   };
   
   const handleShowOverview = () => {
-    setShowCompletionModal(true);
-  };
-
-  const handleProceedToOverview = () => {
-    setShowCompletionModal(false);
-    onComplete();
+    if (narratorMode) {
+      // Erzähler-Modus: Direkt weiter ohne Modal
+      onComplete();
+    } else {
+      // Normal-Modus: Zur Übersicht
+      onComplete();
+    }
   };
 
   return (
-    <div className="w-full max-w-md mx-auto bg-white rounded-xl shadow-lg p-8 text-[#333]">
+    <div className="w-full max-w-[90%] mx-auto bg-white rounded-xl shadow-lg p-8 text-[#333]">
       <div className="absolute top-4 right-4">
         <LanguageSelector />
       </div>
@@ -111,30 +110,13 @@ const CardRevealPage: React.FC<CardRevealPageProps> = ({
                   onClick={handleShowOverview} 
                   className="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 transition flex-1"
                 >
-                  {t('overview')}
+                  {narratorMode ? t('to_game') : t('overview')}
                 </button>
               )}
             </div>
           </div>
         )}
       </div>
-
-      {/* Completion Modal */}
-      {showCompletionModal && (
-        <Modal 
-          title={t('all_roles_revealed')} 
-          onClose={() => setShowCompletionModal(false)} 
-          isOpaque={true}
-        >
-          <p className="text-center mb-6">{t('give_to_narrator')}</p>
-          <button 
-            onClick={handleProceedToOverview} 
-            className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition"
-          >
-            {t('to_overview')}
-          </button>
-        </Modal>
-      )}
     </div>
   );
 };

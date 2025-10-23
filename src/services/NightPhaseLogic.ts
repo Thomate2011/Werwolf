@@ -1,4 +1,4 @@
-// src/services/NightPhaseLogic.ts - ALLE ACTION-HANDLER & KOMPLEXE LOGIK
+// src/services/NightPhaseLogic.ts - PARAMETER FIXES
 
 import { Player, Role } from '../types';
 import { gameStateManager } from './GameStateManager';
@@ -26,23 +26,7 @@ export class NightPhaseLogic {
     if (!player) return false;
     
     const werewolfRoles = ['werwolf', 'der_grosse_boese_werwolf', 'der_weisse_werwolf', 'urwolf'];
-    if (werewolfRoles.includes(player.role.id)) return true;
-    
-    // Wildes Kind als Werwolf?
-    if (player.originalRole.id === 'das_wilde_kind') {
-      const model = gameStateManager.getWildChildModel();
-      if (model) {
-        const modelPlayer = allPlayers.find(p => p.name === model);
-        if (modelPlayer && werewolfRoles.includes(modelPlayer.role.id)) return true;
-      }
-    }
-    
-    // Wolfshund als Werwolf?
-    if (player.originalRole.id === 'der_wolfshund' && gameStateManager.getWolfhundChoice() === 'werwolf') {
-      return true;
-    }
-    
-    return false;
+    return werewolfRoles.includes(player.role.id);
   }
 
   // ============ WAISENKIND ============
@@ -52,10 +36,8 @@ export class NightPhaseLogic {
     const selectedIdx = newPlayers.findIndex(p => p.name === selectedName);
 
     if (orphanIdx !== -1 && selectedIdx !== -1) {
-      const selectedRole = newPlayers[selectedIdx].role;
-      newPlayers[orphanIdx].role = selectedRole;
+      newPlayers[orphanIdx].role = newPlayers[selectedIdx].role;
     }
-
     return newPlayers;
   }
 
@@ -63,11 +45,9 @@ export class NightPhaseLogic {
   static handleThiefCardSelect(thiefName: string, selectedCard: Role, players: Player[]): Player[] {
     const newPlayers = [...players];
     const thiefIdx = newPlayers.findIndex(p => p.name === thiefName);
-
     if (thiefIdx !== -1) {
       newPlayers[thiefIdx].role = selectedCard;
     }
-
     return newPlayers;
   }
 
@@ -75,11 +55,9 @@ export class NightPhaseLogic {
   static handleJesterCardSelect(jesterName: string, selectedCard: Role, players: Player[]): Player[] {
     const newPlayers = [...players];
     const jesterIdx = newPlayers.findIndex(p => p.name === jesterName);
-
     if (jesterIdx !== -1) {
       newPlayers[jesterIdx].role = selectedCard;
     }
-
     return newPlayers;
   }
 
@@ -89,7 +67,7 @@ export class NightPhaseLogic {
     return selected.length === Math.floor(aliveCount / 2);
   }
 
-  static handleGreisGroupSelect(greisFamilyName: string, group1Names: string[], group2Names: string[], players: Player[]): Player[] {
+  static handleGreisGroupSelect(group1Names: string[], group2Names: string[], players: Player[]): Player[] {
     gameStateManager.setBitterOldManGroups(group1Names, group2Names);
     return players;
   }
@@ -103,23 +81,11 @@ export class NightPhaseLogic {
   // ============ WOLFSHUND ============
   static handleWolfhundChoose(choice: 'dorfbewohner' | 'werwolf', wolfhundName: string, players: Player[]): Player[] {
     gameStateManager.setWolfhundChoice(choice);
-    const newPlayers = [...players];
-    const wolfhundIdx = newPlayers.findIndex(p => p.name === wolfhundName);
-
-    if (wolfhundIdx !== -1) {
-      if (choice === 'werwolf') {
-        const werwolfRole = newPlayers.find(p => p.originalRole.id === 'werwolf')?.role;
-        if (werwolfRole) {
-          newPlayers[wolfhundIdx].role = werwolfRole;
-        }
-      }
-    }
-
-    return newPlayers;
+    return players;
   }
 
   // ============ WILDES KIND ============
-  static handleWildChildSelect(wildChildName: string, modelName: string, players: Player[]): Player[] {
+  static handleWildChildSelect(modelName: string, players: Player[]): Player[] {
     gameStateManager.setWildChildModel(modelName);
     return players;
   }
@@ -130,7 +96,7 @@ export class NightPhaseLogic {
   }
 
   // ============ SEHERIN ============
-  static handleSeerSelect(seerName: string, targetName: string, players: Player[]): Role | null {
+  static handleSeerSelect(targetName: string, players: Player[]): Role | null {
     const target = players.find(p => p.name === targetName);
     return target?.role || null;
   }
@@ -140,20 +106,13 @@ export class NightPhaseLogic {
     return gameStateManager.canHealerHeal(targetName);
   }
 
-  static handleHealerSelect(healerName: string, targetName: string, players: Player[]): Player[] {
+  static handleHealerSelect(targetName: string, players: Player[]): Player[] {
     gameStateManager.setHealerHeal(targetName);
     return players;
   }
 
   // ============ WERWÖLFE ============
-  static getValidWerewolfTargets(allPlayers: Player[]): Player[] {
-    return allPlayers.filter(p => 
-      p.status === 'alive' && 
-      !['werwolf', 'der_grosse_boese_werwolf', 'der_weisse_werwolf', 'urwolf'].includes(p.role.id)
-    );
-  }
-
-  static handleWerewolvesSelect(selectedName: string, allPlayers: Player[]): string {
+  static handleWerewolvesSelect(selectedName: string): string {
     return selectedName;
   }
 
@@ -161,14 +120,12 @@ export class NightPhaseLogic {
   static handleUrwolfSelect(targetName: string, players: Player[]): Player[] {
     const newPlayers = [...players];
     const targetIdx = newPlayers.findIndex(p => p.name === targetName);
-
     if (targetIdx !== -1) {
       const werwolfRole = newPlayers.find(p => p.originalRole.id === 'werwolf')?.role;
       if (werwolfRole) {
         newPlayers[targetIdx].role = werwolfRole;
       }
     }
-
     return newPlayers;
   }
 
@@ -206,16 +163,15 @@ export class NightPhaseLogic {
   }
 
   // ============ OBDACHLOS ============
-  static handleHomelessSelect(homelessName: string, targetName: string, players: Player[]): Player[] {
+  static handleHomelessSelect(targetName: string, players: Player[]): Player[] {
     gameStateManager.setHomelessSleepingAt(targetName);
     return players;
   }
 
   // ============ FUCHS ============
-  static handleFoxSelect(foxName: string, targetName: string, players: Player[]): { hasWerewolf: boolean; players: Player[] } {
+  static handleFoxSelect(targetName: string, players: Player[]): { hasWerewolf: boolean; players: Player[] } {
     const neighbors = this.getNeighbors(targetName, players);
     const checkNames = [targetName, ...neighbors];
-
     const hasWerewolf = checkNames.some(name => this.isWerewolf(name, players));
 
     if (!hasWerewolf) {
@@ -226,18 +182,11 @@ export class NightPhaseLogic {
   }
 
   // ============ GROSSER BÖSER WOLF ============
-  static handleBigBadWolfSelect(selectedName: string, allPlayers: Player[]): string {
+  static handleBigBadWolfSelect(selectedName: string): string {
     return selectedName;
   }
 
   // ============ WEISSER WERWOLF ============
-  static getWerewolfTargets(allPlayers: Player[]): Player[] {
-    return allPlayers.filter(p => 
-      p.status === 'alive' && 
-      ['werwolf', 'der_grosse_boese_werwolf', 'urwolf'].includes(p.role.id)
-    );
-  }
-
   static handleWhiteWolfSelect(selectedName: string): string {
     return selectedName;
   }

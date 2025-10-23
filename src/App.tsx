@@ -1,4 +1,4 @@
-// src/App.tsx - KORRIGIERT FÜR NARRATOR-FLOW
+// src/App.tsx - KOMPLETT KORRIGIERT
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { Page, Player, Role } from './types';
@@ -9,8 +9,6 @@ import CardRevealPage from './components/CardRevealPage';
 import GameOverviewPage from './components/GameOverviewPage';
 import NarratorPage from './components/NarratorPage';
 import NarratorModeSelector from './components/NarratorModeSelector';
-import NarratorSeatingInfo from './components/NarratorSeatingInfo';
-import NarratorGameStart from './components/NarratorGameStart';
 import NarratorGame from './components/NarratorGame';
 import { ROLES_CONFIG } from './constants';
 import { useTranslation } from './LanguageContext';
@@ -29,6 +27,7 @@ const App: React.FC = () => {
   const [narratorRound, setNarratorRound] = useState<'1' | '2'>('1');
   const [narratorMode, setNarratorMode] = useState<boolean>(false);
   const [showNarratorSelector, setShowNarratorSelector] = useState<boolean>(false);
+  const [gameWinner, setGameWinner] = useState<string | null>(null);
 
   const [selectedRoles, setSelectedRoles] = useState<Record<string, number>>({});
   const [thiefExtraRoles, setThiefExtraRoles] = useState<Role[]>([]);
@@ -90,7 +89,7 @@ const App: React.FC = () => {
       setOrphanHasUsedAbility(false);
       setMaidActionHistory(null);
       setNarratorRound('1');
-      // WICHTIG: Direkt zum Narrator-Selector, NICHT zu card-reveal
+      setGameWinner(null);
       setShowNarratorSelector(true);
     },
     [players]
@@ -110,6 +109,7 @@ const App: React.FC = () => {
     setOrphanHasUsedAbility(false);
     setNarratorMode(false);
     setShowNarratorSelector(false);
+    setGameWinner(null);
     setCurrentPage('home');
   }, []);
 
@@ -123,6 +123,28 @@ const App: React.FC = () => {
       setCurrentPage('card-reveal');
     }
   }, []);
+
+  const handleGameEnd = useCallback((winner: string) => {
+    setGameWinner(winner);
+    // Zeige Gewinn-Screen
+    setTimeout(() => {
+      alert(`🎉 ${getWinnerText(winner)} haben gewonnen!`);
+      handleGoHome();
+    }, 1000);
+  }, [handleGoHome]);
+
+  const getWinnerText = (winner: string): string => {
+    switch (winner) {
+      case 'villagers': return t('narrator_game_end_villagers_win');
+      case 'werewolves': return t('narrator_game_end_werewolves_win');
+      case 'white_wolf': return t('narrator_game_end_white_wolf_wins');
+      case 'piper': return t('narrator_game_end_piper_wins');
+      case 'angel': return t('narrator_game_end_angel_wins');
+      case 'bitter_old_man': return t('narrator_game_end_bitter_old_man_wins');
+      case 'lovers': return t('narrator_game_end_lovers_win');
+      default: return 'Unbekannter Gewinner';
+    }
+  };
 
   const handleTogglePlayerStatus = useCallback(
     (playerName: string) => {
@@ -269,7 +291,7 @@ const App: React.FC = () => {
           <CardRevealPage
             players={assignedRoles}
             onComplete={() => setCurrentPage('overview')}
-            narratorMode={false}
+            narratorMode={narratorMode}
           />
         );
 
@@ -277,10 +299,7 @@ const App: React.FC = () => {
         return (
           <NarratorGame
             players={assignedRoles}
-            onGameEnd={(winner) => {
-              console.log('Game ended:', winner);
-              handleGoHome();
-            }}
+            onGameEnd={handleGameEnd}
             onNavigate={handleGoHome}
             onGoToRoleSelection={handleGoToRoleSelection}
             thiefExtraRoles={thiefExtraRoles}

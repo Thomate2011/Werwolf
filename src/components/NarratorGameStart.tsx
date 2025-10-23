@@ -9,80 +9,74 @@ interface NarratorGameStartProps {
 
 const NarratorGameStart: React.FC<NarratorGameStartProps> = ({ onStart }) => {
   const { t, locale } = useTranslation();
-  const [audioPlayed, setAudioPlayed] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const audioAttemptRef = useRef(false);
+  const [canProceed, setCanProceed] = useState(false);
+  const hasTriedAudio = useRef(false);
 
   useEffect(() => {
-    // NUR EINMAL versuchen zu spielen
-    if (audioAttemptRef.current) return;
-    audioAttemptRef.current = true;
+    if (!hasTriedAudio.current) {
+      hasTriedAudio.current = true;
+      setIsPlaying(true);
 
-    setIsPlaying(true);
-    audioManager.playAudio(
-      locale as any,
-      'narrator_intro',
-      () => {
-        // Erfolgreich abgespielt
-        setIsPlaying(false);
-        setAudioPlayed(true);
-      },
-      (error) => {
-        // Fehler → trotzdem weitermachen
-        console.error('Audio error:', error);
-        setIsPlaying(false);
-        setAudioPlayed(true); // Button aktivieren!
-      }
-    );
-
-    // ✅ KEINE cleanup Funktion die Audio stoppt!
+      audioManager.playAudio(
+        locale,
+        'narrator_intro',
+        () => {
+          setIsPlaying(false);
+          setCanProceed(true);
+        },
+        (error) => {
+          console.error('Audio error:', error);
+          setIsPlaying(false);
+          setCanProceed(true);
+        }
+      );
+    }
   }, [locale]);
 
   return (
-    <div className="relative w-full min-h-screen bg-white flex items-center justify-center p-4">
-      <div className="absolute top-4 right-4 z-50">
-        <LanguageSelector />
-      </div>
+    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+      {/* Nur Container - Keine weiße Box! */}
+      <div className="w-full max-w-2xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white relative">
+        
+        {/* Welt-Symbol INNERHALB des Containers */}
+        <div className="absolute top-6 right-6">
+          <LanguageSelector />
+        </div>
 
-      <div className="w-full max-w-md mx-auto bg-white rounded-xl shadow-lg p-8 text-center text-[#333]">
-        <h1 className="text-2xl font-bold mb-6 text-green-700">
-          {t('narrator_game_start_title')}
-        </h1>
+        <div className="text-center space-y-8">
+          <h1 className="text-4xl font-bold mb-4">{t('narrator_game_start_title')}</h1>
 
-        <p className="mb-8 text-lg text-gray-600">
-          {t('narrator_game_start_listening')}
-        </p>
-
-        {isPlaying && (
-          <div className="mb-6 p-4 bg-yellow-50 rounded-lg">
-            <p className="text-gray-700 animate-pulse">🔊 {t('narrator_game_start_waiting')}</p>
-          </div>
-        )}
-
-        <button
-          onClick={() => {
-            audioManager.stopAudio();
-            onStart();
-          }}
-          disabled={!audioPlayed && isPlaying}
-          className={`w-full font-bold py-3 px-4 rounded-lg transition ${
-            audioPlayed || !isPlaying
-              ? 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer'
-              : 'bg-gray-400 text-gray-200 cursor-not-allowed'
-          }`}
-        >
-          {audioPlayed
-            ? t('narrator_game_start_button')
-            : isPlaying
-            ? t('narrator_game_start_waiting')
-            : t('narrator_game_start_ready')}
-        </button>
-
-        {audioPlayed && (
-          <p className="mt-4 text-sm text-gray-500">
-            {t('narrator_game_start_ready')}
-          </p>
-        )}
+          {isPlaying ? (
+            <div className="space-y-4">
+              <div className="flex justify-center">
+                <div className="animate-pulse text-6xl">🎙️</div>
+              </div>
+              <p className="text-xl text-white/80">{t('narrator_game_start_listening')}</p>
+              <div className="flex justify-center gap-2 mt-4">
+                <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="text-6xl">✅</div>
+              <p className="text-xl text-white/90">{t('narrator_game_start_ready')}</p>
+              <button
+                onClick={onStart}
+                disabled={!canProceed}
+                className={`w-full py-4 px-8 rounded-xl font-bold text-xl transition-all ${
+                  canProceed
+                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
+                    : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                {t('narrator_game_start_button')}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
