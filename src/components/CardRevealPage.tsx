@@ -43,15 +43,8 @@ const CardRevealPage: React.FC<CardRevealPageProps> = ({
       setCurrentPlayerIndex(prev => prev + 1);
       setIsRevealed(false);
       setShowDescription(false);
-    }
-  };
-  
-  const handleShowOverview = () => {
-    if (narratorMode) {
-      // Erzähler-Modus: Direkt weiter ohne Modal
-      onComplete();
     } else {
-      // Normal-Modus: Zur Übersicht
+      // Letzter Spieler im Erzähler-Modus
       onComplete();
     }
   };
@@ -64,13 +57,10 @@ const CardRevealPage: React.FC<CardRevealPageProps> = ({
       
       <h1 className="text-2xl font-bold mb-6 text-center">{t('card_reveal_title')}</h1>
 
-      {/* Spielerkästchen - kompakt wie Image 2 */}
       <div className="w-full border-2 border-blue-400 border-dashed rounded-lg p-6 flex flex-col justify-center items-center text-center min-h-[200px]">
         
-        {/* Spielername (oben) */}
         <p className="text-lg font-semibold mb-4">{currentPlayer.name}</p>
 
-        {/* Hauptbereich - je nach Status */}
         {!isRevealed ? (
           <button 
             onClick={handleReveal} 
@@ -80,15 +70,12 @@ const CardRevealPage: React.FC<CardRevealPageProps> = ({
           </button>
         ) : (
           <div className="w-full">
-            {/* Rolle - große, fette Schrift */}
             <h2 className="text-3xl font-bold text-green-700 mb-4">{currentRoleInfo.name}</h2>
 
-            {/* Erklärung - nur wenn sichtbar */}
             {showDescription && (
               <p className="text-sm text-gray-600 mb-4 px-2">{currentRoleInfo.description}</p>
             )}
 
-            {/* Buttons - NEBENEINANDER */}
             <div className="flex gap-3 mt-2">
               {!showDescription && (
                 <button 
@@ -98,21 +85,12 @@ const CardRevealPage: React.FC<CardRevealPageProps> = ({
                   {t('explanation')}
                 </button>
               )}
-              {!isLastPlayer ? (
-                <button 
-                  onClick={handleNext} 
-                  className="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 transition flex-1"
-                >
-                  {t('next_player')}
-                </button>
-              ) : (
-                <button 
-                  onClick={handleShowOverview} 
-                  className="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 transition flex-1"
-                >
-                  {narratorMode ? t('to_game') : t('overview')}
-                </button>
-              )}
+              <button 
+                onClick={handleNext} 
+                className="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 transition flex-1"
+              >
+                {isLastPlayer ? t('continue') : t('next_player')}
+              </button>
             </div>
           </div>
         )}

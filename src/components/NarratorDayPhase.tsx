@@ -1,9 +1,10 @@
-// src/components/NarratorDayPhase.tsx - KOMPLETT mit Jäger, Sündenbock, etc.
+// src/components/NarratorDayPhase.tsx - MIT BÄRENKNURREN & SÜNDENBOCK
 
 import React, { useState } from 'react';
 import { Player } from '../types';
 import { useTranslation } from '../LanguageContext';
 import { gameStateManager } from '../services/GameStateManager';
+import { audioManager } from '../services/AudioManager';
 
 interface NarratorDayPhaseProps {
   players: Player[];
@@ -11,9 +12,11 @@ interface NarratorDayPhaseProps {
   hunterDeaths: string[];
   onDayComplete: (updatedPlayers: Player[]) => void;
   onGameEnd: (winner: string) => void;
+  onRestart: () => void;
+  onGoHome: () => void;
 }
 
-type DayPhase = 'show_deaths' | 'maid_action' | 'hunter_action' | 'discussion' | 'voting' | 'second_voting' | 'show_day_deaths' | 'check_win';
+type DayPhase = 'bear_check' | 'show_deaths' | 'maid_action' | 'hunter_action' | 'discussion' | 'voting' | 'show_day_deaths' | 'win_screen';
 
 const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
   players,
@@ -21,17 +24,74 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
   hunterDeaths,
   onDayComplete,
   onGameEnd,
+  onRestart,
+  onGoHome,
 }) => {
-  const { t } = useTranslation();
-  const [phase, setPhase] = useState<DayPhase>('show_deaths');
+  const { t, locale } = useTranslation();
+  const [phase, setPhase] = useState<DayPhase>('bear_check');
   const [dayPlayers, setDayPlayers] = useState<Player[]>(players);
   const [dayDeaths, setDayDeaths] = useState<string[]>([]);
   const [currentHunterIndex, setCurrentHunterIndex] = useState(0);
-  const [votedOutPlayer, setVotedOutPlayer] = useState<string | null>(null);
+  const [winner, setWinner] = useState<string | null>(null);
+  const [bearGrowled, setBearGrowled] = useState(false);
+
+  // KORRIGIERTE Gewinn-Prüfung
+  const checkWinCondition = (currentPlayers: Player[]): string | null => {
+    const alivePlayers = currentPlayers.filter(p => p.status === 'alive');
+    
+    const piper = currentPlayers.find(p => p.originalRole.id === 'floetenspieler');
+    if (piper && piper.status === 'alive') {
+      const allEnchanted = alivePlayers.every(p => 
+        gameStateManager.isPiperEnchanted(p.name) || p.name === piper.name
+      );
+      if (allEnchanted) return 'piper';
+    }
+
+    if (gameStateManager.checkBitterOldManWin(currentPlayers.filter(p => p.status === 'dead'))) {
+      return 'bitter_old_man';
+    }
+
+    const lovers = gameStateManager.getLovers();
+    if (lovers.length === 2) {
+      const lover1Alive = alivePlayers.find(p => p.name === lovers[0]);
+      const lover2Alive = alivePlayers.find(p => p.name === lovers[1]);
+      if (lover1Alive && lover2Alive && alivePlayers.length === 2) {
+        return 'lovers';
+      }
+    }
+
+    const werewolfRoles = ['werwolf', 'der_grosse_boese_werwolf', 'der_weisse_werwolf', 'urwolf'];
+    const aliveWerewolves = alivePlayers.filter(p => werewolfRoles.includes(p.role.id));
+    const aliveNonWerewolves = alivePlayers.filter(p => !werewolfRoles.includes(p.role.id));
+
+    const whiteWolf = alivePlayers.find(p => p.role.id === 'der_weisse_werwolf');
+    if (whiteWolf && alivePlayers.length === 1) return 'white_wolf';
+
+    if (aliveWerewolves.length > 0 && aliveNonWerewolves.length === 0) return 'werewolves';
+    if (aliveWerewolves.length === 0 && aliveNonWerewolves.length > 0) return 'villagers';
+
+    return null;
+  };
+
+  // ============ BÄREN-CHECK ============
+  const handleBearCheck = () => {
+    const shouldGrowl = gameStateManager.checkBearAlert(dayPlayers);
+    if (shouldGrowl) {
+      setBearGrowled(true);
+      audioManager.playAudio(locale, 'narrator_day_bear_growl', () => {
+        setTimeout(() => {
+          setPhase('show_deaths');
+        }, 2000);
+      }, () => {
+        setPhase('show_deaths');
+      });
+    } else {
+      setPhase('show_deaths');
+    }
+  };
 
   // ============ TOD-ANZEIGE ============
   const handleShowDeaths = () => {
-    // Prüfe ob Ergebene Magd existiert und lebt
     const maid = dayPlayers.find(p => 
       p.originalRole.id === 'ergebene_magd' && 
       p.status === 'alive'
@@ -42,18 +102,26 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
     } else if (hunterDeaths.length > 0) {
       setPhase('hunter_action');
     } else {
-      setPhase('discussion');
+      const winnerCheck = checkWinCondition(dayPlayers);
+      if (winnerCheck) {
+        setWinner(winnerCheck);
+        setPhase('win_screen');
+      } else {
+        setPhase('discussion');
+      }
     }
   };
 
   // ============ ERGEBENE MAGD ============
   const handleMaidAction = (takeOver: boolean, deadPlayerName?: string) => {
+    let newPlayers = [...dayPlayers];
+    
     if (takeOver && deadPlayerName) {
-      const maid = dayPlayers.find(p => p.originalRole.id === 'ergebene_magd');
-      const deadPlayer = dayPlayers.find(p => p.name === deadPlayerName);
+      const maid = newPlayers.find(p => p.originalRole.id === 'ergebene_magd');
+      const deadPlayer = newPlayers.find(p => p.name === deadPlayerName);
       
       if (maid && deadPlayer) {
-        const newPlayers = dayPlayers.map(p => {
+        newPlayers = newPlayers.map(p => {
           if (p.name === maid.name) {
             return { ...p, role: deadPlayer.role };
           }
@@ -66,7 +134,13 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
     if (hunterDeaths.length > 0) {
       setPhase('hunter_action');
     } else {
-      setPhase('discussion');
+      const winnerCheck = checkWinCondition(newPlayers);
+      if (winnerCheck) {
+        setWinner(winnerCheck);
+        setPhase('win_screen');
+      } else {
+        setPhase('discussion');
+      }
     }
   };
 
@@ -75,74 +149,130 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
     const newDeaths = [...dayDeaths, targetName];
     setDayDeaths(newDeaths);
 
-    const newPlayers = dayPlayers.map(p =>
+    let newPlayers = dayPlayers.map(p =>
       p.name === targetName ? { ...p, status: 'dead' as const } : p
     );
+
+    const lovers = gameStateManager.getLovers();
+    if (lovers.includes(targetName)) {
+      const otherLover = lovers.find(l => l !== targetName);
+      if (otherLover) {
+        newPlayers = newPlayers.map(p =>
+          p.name === otherLover ? { ...p, status: 'dead' as const } : p
+        );
+        newDeaths.push(otherLover);
+        setDayDeaths(newDeaths);
+      }
+    }
+
     setDayPlayers(newPlayers);
 
-    // Prüfe ob weiterer Jäger gestorben ist
     const targetPlayer = newPlayers.find(p => p.name === targetName);
     const isAnotherHunter = targetPlayer?.originalRole.id === 'jaeger';
 
     if (isAnotherHunter) {
-      // Nächster Jäger
       setCurrentHunterIndex(prev => prev + 1);
     } else if (currentHunterIndex < hunterDeaths.length - 1) {
-      // Noch mehr Jäger aus der Nacht
       setCurrentHunterIndex(prev => prev + 1);
     } else {
-      setPhase('discussion');
+      const winnerCheck = checkWinCondition(newPlayers);
+      if (winnerCheck) {
+        setWinner(winnerCheck);
+        setPhase('win_screen');
+      } else {
+        setPhase('discussion');
+      }
     }
   };
 
   // ============ ABSTIMMUNG ============
   const handleVoting = (selectedName: string) => {
-    setVotedOutPlayer(selectedName);
-
     const votedPlayer = dayPlayers.find(p => p.name === selectedName);
     if (!votedPlayer) return;
 
-    // Dorfdepp darf nicht sterben
     if (votedPlayer.originalRole.id === 'dorfdepp') {
-      // Dorfdepp verliert Stimmrecht aber stirbt nicht
       setPhase('show_day_deaths');
       return;
     }
 
-    // Engel gewinnt wenn in Runde 1 abgestimmt
     if (votedPlayer.originalRole.id === 'der_engel') {
-      onGameEnd('angel');
+      setWinner('angel');
+      setPhase('win_screen');
       return;
     }
 
-    // Sündenbock bei Gleichstand
+    const newDeaths = [...dayDeaths, selectedName];
+    setDayDeaths(newDeaths);
+
+    let newPlayers = dayPlayers.map(p =>
+      p.name === selectedName ? { ...p, status: 'dead' as const } : p
+    );
+
+    const lovers = gameStateManager.getLovers();
+    if (lovers.includes(selectedName)) {
+      const otherLover = lovers.find(l => l !== selectedName);
+      if (otherLover) {
+        newPlayers = newPlayers.map(p =>
+          p.name === otherLover ? { ...p, status: 'dead' as const } : p
+        );
+        newDeaths.push(otherLover);
+        setDayDeaths(newDeaths);
+      }
+    }
+
+    setDayPlayers(newPlayers);
+
+    if (votedPlayer.originalRole.id === 'jaeger') {
+      setPhase('hunter_action');
+      setCurrentHunterIndex(0);
+    } else {
+      const winnerCheck = checkWinCondition(newPlayers);
+      if (winnerCheck) {
+        setWinner(winnerCheck);
+        setPhase('win_screen');
+      } else {
+        setPhase('show_day_deaths');
+      }
+    }
+  };
+
+  // ============ SÜNDENBOCK STIRBT ============
+  const handleScapegoatDeath = () => {
     const scapegoat = dayPlayers.find(p => 
       p.originalRole.id === 'suendenbock' && 
       p.status === 'alive'
     );
     
-    // Für Demo: Annahme es gibt Gleichstand wenn Sündenbock da ist
-    // In echter Implementierung: Zähle Stimmen
-    
-    // Richter Codewort prüfen (vereinfacht)
-    const judge = dayPlayers.find(p => 
-      p.originalRole.id === 'der_stotternde_richter' &&
-      p.status === 'alive'
-    );
+    if (!scapegoat) return;
 
-    // Normale Abstimmung
-    const newDeaths = [...dayDeaths, selectedName];
+    // Sündenbock stirbt direkt
+    const newDeaths = [...dayDeaths, scapegoat.name];
     setDayDeaths(newDeaths);
 
-    const newPlayers = dayPlayers.map(p =>
-      p.name === selectedName ? { ...p, status: 'dead' as const } : p
+    let newPlayers = dayPlayers.map(p =>
+      p.name === scapegoat.name ? { ...p, status: 'dead' as const } : p
     );
+
+    // Verliebte-Logik
+    const lovers = gameStateManager.getLovers();
+    if (lovers.includes(scapegoat.name)) {
+      const otherLover = lovers.find(l => l !== scapegoat.name);
+      if (otherLover) {
+        newPlayers = newPlayers.map(p =>
+          p.name === otherLover ? { ...p, status: 'dead' as const } : p
+        );
+        newDeaths.push(otherLover);
+        setDayDeaths(newDeaths);
+      }
+    }
+
     setDayPlayers(newPlayers);
 
-    // Prüfe ob Jäger
-    if (votedPlayer.originalRole.id === 'jaeger') {
-      setPhase('hunter_action');
-      setCurrentHunterIndex(0);
+    // Gewinn-Check
+    const winnerCheck = checkWinCondition(newPlayers);
+    if (winnerCheck) {
+      setWinner(winnerCheck);
+      setPhase('win_screen');
     } else {
       setPhase('show_day_deaths');
     }
@@ -150,68 +280,100 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
 
   // ============ TAG-TOTE ANZEIGEN ============
   const handleShowDayDeaths = () => {
-    setPhase('check_win');
-  };
-
-  // ============ GEWINN-PRÜFUNG ============
-  const checkWinCondition = () => {
-    const alivePlayers = dayPlayers.filter(p => p.status === 'alive');
-    
-    // Flötenspieler Sieg
-    const piper = dayPlayers.find(p => p.originalRole.id === 'floetenspieler');
-    const allEnchanted = alivePlayers.every(p => 
-      gameStateManager.isPiperEnchanted(p.name)
-    );
-    if (piper && piper.status === 'alive' && allEnchanted) {
-      onGameEnd('piper');
-      return;
-    }
-
-    // Verbitterter Greis
-    if (gameStateManager.checkBitterOldManWin(dayPlayers.filter(p => p.status === 'dead'))) {
-      onGameEnd('bitter_old_man');
-      return;
-    }
-
-    // Verliebte
-    const lovers = gameStateManager.getLovers();
-    if (lovers.length === 2) {
-      const lover1Alive = alivePlayers.find(p => p.name === lovers[0]);
-      const lover2Alive = alivePlayers.find(p => p.name === lovers[1]);
-      if (lover1Alive && lover2Alive && alivePlayers.length === 2) {
-        onGameEnd('lovers');
-        return;
-      }
-    }
-
-    // Werwölfe vs Dorfbewohner
-    const werewolfRoles = ['werwolf', 'der_grosse_boese_werwolf', 'der_weisse_werwolf', 'urwolf'];
-    const aliveWerewolves = alivePlayers.filter(p => werewolfRoles.includes(p.role.id));
-    const aliveVillagers = alivePlayers.filter(p => !werewolfRoles.includes(p.role.id));
-
-    // Weißer Werwolf alleine
-    const whiteWolf = alivePlayers.find(p => p.role.id === 'der_weisse_werwolf');
-    if (whiteWolf && alivePlayers.length === 1) {
-      onGameEnd('white_wolf');
-      return;
-    }
-
-    if (aliveWerewolves.length === 0) {
-      onGameEnd('villagers');
-    } else if (aliveVillagers.length === 0) {
-      onGameEnd('werewolves');
+    const winnerCheck = checkWinCondition(dayPlayers);
+    if (winnerCheck) {
+      setWinner(winnerCheck);
+      setPhase('win_screen');
     } else {
-      // Nächste Runde
       onDayComplete(dayPlayers);
     }
   };
 
-  // ============ RENDER ============
+  // ============ GEWINN-SCREEN ============
+  const getWinnerText = (): string => {
+    switch (winner) {
+      case 'villagers': return t('narrator_game_end_villagers_win');
+      case 'werewolves': return t('narrator_game_end_werewolves_win');
+      case 'white_wolf': return t('narrator_game_end_white_wolf_wins');
+      case 'piper': return t('narrator_game_end_piper_wins');
+      case 'angel': return t('narrator_game_end_angel_wins');
+      case 'bitter_old_man': return t('narrator_game_end_bitter_old_man_wins');
+      case 'lovers': return t('narrator_game_end_lovers_win');
+      default: return 'Unbekannter Gewinner';
+    }
+  };
+
+  // Prüfe ob Sündenbock lebt
+  const scapegoatAlive = dayPlayers.some(p => 
+    p.originalRole.id === 'suendenbock' && 
+    p.status === 'alive'
+  );
+
+  if (phase === 'bear_check') {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-gray-900 via-brown-900 to-black">
+        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
+          <div className="text-center space-y-6">
+            <div className="text-6xl">🐻</div>
+            <h1 className="text-3xl font-bold">Bären-Check...</h1>
+            <button
+              onClick={handleBearCheck}
+              className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg"
+            >
+              {t('next')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'win_screen') {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-yellow-600 via-orange-600 to-red-600">
+        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
+          <div className="text-center space-y-8">
+            <div className="text-8xl">🎉</div>
+            <h1 className="text-5xl font-bold">{getWinnerText()}</h1>
+            
+            <div className="grid grid-cols-2 gap-6 mt-12">
+              <div className="text-center">
+                <button
+                  onClick={onRestart}
+                  className="w-full py-6 px-8 bg-blue-600 hover:bg-blue-700 text-white font-bold text-2xl rounded-xl shadow-lg transition transform hover:scale-105"
+                >
+                  {t('restart')}
+                </button>
+                <p className="text-sm text-white/70 mt-3">Zur Rollenauswahl</p>
+              </div>
+              
+              <div className="text-center">
+                <button
+                  onClick={onGoHome}
+                  className="w-full py-6 px-8 bg-red-600 hover:bg-red-700 text-white font-bold text-2xl rounded-xl shadow-lg transition transform hover:scale-105"
+                >
+                  {t('to_homepage')}
+                </button>
+                <p className="text-sm text-white/70 mt-3">Kompletter Reset</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (phase === 'show_deaths') {
     return (
       <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-orange-900 via-red-900 to-pink-900">
         <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
+          {bearGrowled && (
+            <div className="mb-6 text-center">
+              <div className="text-6xl mb-4">🐻💢</div>
+              <p className="text-2xl font-bold text-yellow-400">GRRRR! Der Bär knurrt!</p>
+            </div>
+          )}
+          
           <h1 className="text-4xl font-bold text-center mb-8">
             🌅 {t('narrator_day_deaths_title')}
           </h1>
@@ -345,7 +507,7 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
             Wählt gemeinsam eine Person aus
           </p>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 max-h-96 overflow-y-auto mb-6">
             {dayPlayers
               .filter(p => p.status === 'alive')
               .map((player) => (
@@ -358,6 +520,15 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
                 </button>
               ))}
           </div>
+
+          {scapegoatAlive && (
+            <button
+              onClick={handleScapegoatDeath}
+              className="w-full py-4 px-8 bg-yellow-600 hover:bg-yellow-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
+            >
+              🐐 Gleichstand - Sündenbock stirbt
+            </button>
+          )}
         </div>
       </div>
     );
@@ -384,16 +555,13 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
                   className="bg-red-600/30 border-2 border-red-500 rounded-xl p-6 text-center transform hover:scale-105 transition"
                 >
                   <p className="text-3xl font-bold">💀 {name}</p>
-                  {name === votedOutPlayer && (
-                    <p className="text-sm text-white/60 mt-2">Durch Abstimmung</p>
-                  )}
                 </div>
               ))}
             </div>
           )}
 
           <button
-            onClick={checkWinCondition}
+            onClick={handleShowDayDeaths}
             className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
           >
             {t('next')}

@@ -1,45 +1,25 @@
-// src/services/GameStateManager.ts - ZENTRALE STATE-VERWALTUNG
+// src/services/GameStateManager.ts - AKTUALISIERT
 
 import { Player } from '../types';
 
 export interface GameState {
-  // Heiler Memory (nur letzte geheilte Person pro Runde)
   healerLastHealed: string | null;
-  
-  // Flötenspieler - markierte Spieler (bleiben ganze Partie)
   piperEnchanted: string[];
-  
-  // Wolfshund - welche Rolle wurde gewählt (geheim)
   wolfhundChoice: 'dorfbewohner' | 'werwolf' | null;
-  
-  // Wildes Kind - welcher Spieler ist Vorbild (geheim)
   wildChildModel: string | null;
-  
-  // Verbitterter Greis - Gruppen (geheim, nur im Backend)
   bitterOldManGroup1: string[];
   bitterOldManGroup2: string[];
   bitterOldManHasWon: boolean;
-  
-  // Richter - Codewort
   judgeCodeword: string | null;
-  
-  // Liebe (Amor)
   lovers: string[];
   
-  // Hexe - Tränke (einmalig pro Spiel)
-  hexeHealPotionUsed: boolean;
-  hexePoisonPotionUsed: boolean;
+  // HEXEN-TRÄNKE (einmalig pro SPIEL)
+  hexeHealPotionUsedEver: boolean;
+  hexePoisonPotionUsedEver: boolean;
   
-  // Obdachlos - wo übernachtet
   homelessSleepingAt: string | null;
-  
-  // Fuchs - hat Fähigkeit verloren?
   foxHasLostAbility: boolean;
-  
-  // Ritter - wer ist infiziert (stirbt nächste Nacht)
   knightInfected: string | null;
-  
-  // Bären-Alarm (Position-basiert, geheim)
   bearAlertPlayers: string[];
 }
 
@@ -57,8 +37,8 @@ export class GameStateManager {
       bitterOldManHasWon: false,
       judgeCodeword: null,
       lovers: [],
-      hexeHealPotionUsed: false,
-      hexePoisonPotionUsed: false,
+      hexeHealPotionUsedEver: false,
+      hexePoisonPotionUsedEver: false,
       homelessSleepingAt: null,
       foxHasLostAbility: false,
       knightInfected: null,
@@ -119,11 +99,9 @@ export class GameStateManager {
       return false;
     }
 
-    // Prüfe ob Greis noch lebt
     const bitterOldMans = deadPlayers.filter(p => p.originalRole.id === 'der_verbitterte_greis');
-    if (bitterOldMans.length > 0) return false; // Greis ist tot
+    if (bitterOldMans.length > 0) return false;
 
-    // Prüfe ob eine Gruppe komplett tot ist
     const group1AllDead = this.state.bitterOldManGroup1.every(name => 
       deadPlayers.find(p => p.name === name)
     );
@@ -160,21 +138,21 @@ export class GameStateManager {
     );
   }
 
-  // ============ HEXE - TRÄNKE ============
+  // ============ HEXE - TRÄNKE (einmalig pro SPIEL) ============
   useHealPotion(): void {
-    this.state.hexeHealPotionUsed = true;
+    this.state.hexeHealPotionUsedEver = true;
   }
 
   canUseHealPotion(): boolean {
-    return !this.state.hexeHealPotionUsed;
+    return !this.state.hexeHealPotionUsedEver;
   }
 
   usePoisonPotion(): void {
-    this.state.hexePoisonPotionUsed = true;
+    this.state.hexePoisonPotionUsedEver = true;
   }
 
   canUsePoisonPotion(): boolean {
-    return !this.state.hexePoisonPotionUsed;
+    return !this.state.hexePoisonPotionUsedEver;
   }
 
   // ============ OBDACHLOS ============
@@ -213,13 +191,41 @@ export class GameStateManager {
     return this.state.bearAlertPlayers;
   }
 
+  // Prüft ob Bärenführer neben Werwolf sitzt
+  checkBearAlert(players: Player[]): boolean {
+    const bearLeader = players.find(p => 
+      p.originalRole.id === 'der_baerenfuehrer' && 
+      p.status === 'alive'
+    );
+    
+    if (!bearLeader) return false;
+
+    // Finde Index des Bärenführers
+    const alivePlayersOrdered = players.filter(p => p.status === 'alive');
+    const bearIndex = alivePlayersOrdered.findIndex(p => p.name === bearLeader.name);
+    
+    if (bearIndex === -1) return false;
+
+    // Nachbarn
+    const leftIndex = (bearIndex - 1 + alivePlayersOrdered.length) % alivePlayersOrdered.length;
+    const rightIndex = (bearIndex + 1) % alivePlayersOrdered.length;
+    
+    const leftNeighbor = alivePlayersOrdered[leftIndex];
+    const rightNeighbor = alivePlayersOrdered[rightIndex];
+
+    const werewolfRoles = ['werwolf', 'der_grosse_boese_werwolf', 'der_weisse_werwolf', 'urwolf'];
+    
+    return (
+      werewolfRoles.includes(leftNeighbor.role.id) ||
+      werewolfRoles.includes(rightNeighbor.role.id)
+    );
+  }
+
   // ============ RESET FÜR NÄCHSTE RUNDE ============
   resetNightState(): void {
-    // Reset nur die Dinge, die sich pro Nacht ändern
     this.state.homelessSleepingAt = null;
     this.state.knightInfected = null;
     this.state.bearAlertPlayers = [];
-    // Heiler-Memory bleibt! (für nächste Runde relevant)
   }
 
   // ============ VOLLSTÄNDIGER STATE ============
@@ -239,8 +245,8 @@ export class GameStateManager {
       bitterOldManHasWon: false,
       judgeCodeword: null,
       lovers: [],
-      hexeHealPotionUsed: false,
-      hexePoisonPotionUsed: false,
+      hexeHealPotionUsedEver: false,
+      hexePoisonPotionUsedEver: false,
       homelessSleepingAt: null,
       foxHasLostAbility: false,
       knightInfected: null,
@@ -249,5 +255,4 @@ export class GameStateManager {
   }
 }
 
-// Singleton Instance
 export const gameStateManager = new GameStateManager();

@@ -1,5 +1,3 @@
-// src/components/NarratorGame.tsx - KORRIGIERT
-
 import React, { useState } from 'react';
 import { Player, Role } from '../types';
 import NarratorSeatingInfo from './NarratorSeatingInfo';
@@ -16,7 +14,7 @@ interface NarratorGameProps {
   jesterExtraRoles: Role[];
 }
 
-type GamePhase = 'seating' | 'intro' | 'night' | 'day' | 'end';
+type GamePhase = 'seating_and_cards' | 'intro' | 'night' | 'day' | 'end';
 
 const NarratorGame: React.FC<NarratorGameProps> = ({
   players,
@@ -26,13 +24,13 @@ const NarratorGame: React.FC<NarratorGameProps> = ({
   thiefExtraRoles,
   jesterExtraRoles,
 }) => {
-  const [gamePhase, setGamePhase] = useState<GamePhase>('seating');
+  const [gamePhase, setGamePhase] = useState<GamePhase>('seating_and_cards');
   const [currentRound, setCurrentRound] = useState(1);
   const [gamePlayers, setGamePlayers] = useState<Player[]>(players);
   const [nightDeaths, setNightDeaths] = useState<string[]>([]);
   const [hunterDeaths, setHunterDeaths] = useState<string[]>([]);
 
-  const handleSeatingConfirm = () => {
+  const handleSeatingAndCardsComplete = () => {
     setGamePhase('intro');
   };
 
@@ -49,32 +47,15 @@ const NarratorGame: React.FC<NarratorGameProps> = ({
 
   const handleDayComplete = (updatedPlayers: Player[]) => {
     setGamePlayers(updatedPlayers);
-    
-    // Prüfe Gewinn-Bedingung
-    const alivePlayers = updatedPlayers.filter((p) => p.status === 'alive');
-    const aliveWerewolves = alivePlayers.filter((p) =>
-      ['werwolf', 'der_grosse_boese_werwolf', 'der_weisse_werwolf', 'urwolf'].includes(p.role.id)
-    );
-    const aliveVillagers = alivePlayers.filter((p) =>
-      !['werwolf', 'der_grosse_boese_werwolf', 'der_weisse_werwolf', 'urwolf'].includes(p.role.id)
-    );
-
-    if (aliveWerewolves.length === 0) {
-      onGameEnd('villagers');
-    } else if (aliveVillagers.length === 0) {
-      onGameEnd('werewolves');
-    } else {
-      // Nächste Runde
-      setCurrentRound((prev) => prev + 1);
-      setGamePhase('night');
-    }
+    setCurrentRound(prev => prev + 1);
+    setGamePhase('night');
   };
 
-  if (gamePhase === 'seating') {
+  if (gamePhase === 'seating_and_cards') {
     return (
       <NarratorSeatingInfo
-        onConfirm={handleSeatingConfirm}
-        onBack={onGoToRoleSelection}
+        players={gamePlayers}
+        onComplete={handleSeatingAndCardsComplete}
       />
     );
   }
@@ -103,6 +84,8 @@ const NarratorGame: React.FC<NarratorGameProps> = ({
         hunterDeaths={hunterDeaths}
         onDayComplete={handleDayComplete}
         onGameEnd={onGameEnd}
+        onRestart={onGoToRoleSelection}
+        onGoHome={onNavigate}
       />
     );
   }
