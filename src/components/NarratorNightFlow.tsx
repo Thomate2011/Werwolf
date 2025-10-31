@@ -1,4 +1,4 @@
-// src/components/NarratorNightFlow.tsx - KOMPLETT MIT ALLEN AUDIOS
+// src/components/NarratorNightFlow.tsx - VOLLSTÄNDIG KORRIGIERT & KOMPLETT
 
 import React, { useState, useEffect } from 'react';
 import { Player, Role } from '../types';
@@ -28,6 +28,19 @@ interface NightActionState {
   foxChecked: string[];
 }
 
+const AUDIO_NAME_MAP: Record<string, string> = {
+  'der_verbitterte_greis': 'verbitterte_greis',
+  'der_wolfshund': 'wolfshund',
+  'die_drei_brueder': 'drei_brueder',
+  'die_zwei_schwestern': 'zwei_schwestern',
+  'das_wilde_kind': 'wilde_kind',
+  'floetenspieler': 'piper',
+  'der_obdachlose': 'homeless',
+  'der_grosse_boese_werwolf': 'big_bad_wolf',
+  'der_weisse_werwolf': 'white_wolf',
+  'der_fuchs': 'fox',
+};
+
 const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
   players,
   currentRound,
@@ -55,15 +68,14 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
     foxChecked: [],
   });
 
-  // Generiere Rollen-Sequenz
   useEffect(() => {
     const sequence = generateRoleSequence(modifiedPlayers, currentRound);
+    console.log('🌙 Nacht-Sequenz Runde', currentRound, ':', sequence);
     setRoleSequence(sequence);
   }, [modifiedPlayers, currentRound]);
 
   const currentRole = roleSequence[currentRoleIndex];
 
-  // Audio abspielen
   useEffect(() => {
     if (flowState !== 'playing_audio' || !currentRole) return;
 
@@ -76,13 +88,13 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
     } else if (currentRole === 'reine_seele') {
       audioKey = 'narrator_reine_seele';
     } else {
-      // Normale Rolle
+      const mappedRole = AUDIO_NAME_MAP[currentRole] || currentRole;
+      
       if (currentAudioPhase === 'open') {
-        audioKey = `narrator_${currentRole}_open`;
+        audioKey = `narrator_${mappedRole}_open`;
       } else if (currentAudioPhase === 'close') {
-        audioKey = `narrator_${currentRole}_close`;
+        audioKey = `narrator_${mappedRole}_close`;
       } else if (currentAudioPhase === 'action') {
-        // Spezielle Rollen mit extra Audio
         if (currentRole === 'amor') {
           audioKey = 'narrator_amor_tap';
         } else if (currentRole === 'urwolf') {
@@ -106,74 +118,69 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
     }
 
     if (!audioKey) {
+      console.warn('⚠️ Kein Audio-Key für:', currentRole, currentAudioPhase);
       handleAfterAudio();
       return;
     }
+
+    console.log('🔊 Spiele Audio:', audioKey);
 
     audioManager.playAudio(
       locale,
       audioKey,
       () => handleAfterAudio(),
       (error) => {
-        console.error('Audio error:', error);
+        console.error('❌ Audio Fehler:', error);
         handleAfterAudio();
       }
     );
   }, [flowState, currentRole, currentAudioPhase, locale]);
 
   const handleAfterAudio = () => {
-    if (currentRole === 'close_eyes' || currentRole === 'open_eyes') {
-      // Nach close_eyes oder open_eyes: 3 Sekunden Pause
-      setFlowState('pause');
-      setTimeout(() => {
-        proceedToNext();
-      }, 3000);
-      return;
-    }
-
-    if (currentRole === 'reine_seele') {
-      // Reine Seele: direkt weiter
+    if (currentRole === 'close_eyes') {
       proceedToNext();
       return;
     }
 
-    // Normale Rollen
+    if (currentRole === 'open_eyes') {
+      proceedToNext();
+      return;
+    }
+
+    if (currentRole === 'reine_seele') {
+      setFlowState('show_continue');
+      setDisplayText('Reine Seele hat sich zu erkennen gegeben.');
+      return;
+    }
+
     if (currentAudioPhase === 'open') {
-      // Nach "Augen auf" -> DIREKT Aktion zeigen (KEINE PAUSE)
       setFlowState('show_action');
     } else if (currentAudioPhase === 'action') {
-      // Nach "tap" Audio -> Unterschiedliche Behandlung
       if (currentRole === 'amor' || currentRole === 'floetenspieler') {
-        // Amor/Flötenspieler: Zu "close"
         setCurrentAudioPhase('close');
         setFlowState('playing_audio');
       } else if (currentRole === 'urwolf') {
-        // Urwolf: Weiter-Button
         setFlowState('show_continue');
+        setDisplayText('Infizierung wurde durchgeführt.');
       }
     } else if (currentAudioPhase === 'close') {
-      // Nach "Augen zu"
       if (currentRole === 'amor' || currentRole === 'floetenspieler') {
-        // Zu "wake" Audio
         setCurrentAudioPhase('wake');
         setFlowState('playing_audio');
       } else {
-        // Normale Rollen: 3 Sekunden Pause
         setFlowState('pause');
         setTimeout(() => {
           proceedToNext();
         }, 3000);
       }
     } else if (currentAudioPhase === 'wake') {
-      // Nach "wake": Weiter-Button mit Text
       setFlowState('show_continue');
       if (currentRole === 'amor') {
-        setDisplayText('Verliebte, schaut euch um, wer euer Partner ist.');
+        setDisplayText('Verliebte, schaut euch an, wer euer Partner ist.');
       } else if (currentRole === 'floetenspieler') {
-        setDisplayText('Verzauberte, schaut euch um, wer ebenfalls verzaubert ist.');
+        setDisplayText('Verzauberte, schaut euch an, wer ebenfalls verzaubert ist.');
       }
     } else if (currentAudioPhase === 'sleep') {
-      // Nach "sleep": 3 Sekunden Pause
       setFlowState('pause');
       setTimeout(() => {
         proceedToNext();
@@ -182,12 +189,10 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
   };
 
   const handleActionComplete = () => {
-    // Spezielle Rollen: nach Aktion kommt noch "tap" Audio
     if (['amor', 'urwolf', 'floetenspieler'].includes(currentRole)) {
       setCurrentAudioPhase('action');
       setFlowState('playing_audio');
     } else {
-      // Normale Rollen: direkt zu "close"
       setCurrentAudioPhase('close');
       setFlowState('playing_audio');
     }
@@ -195,13 +200,13 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
 
   const handleContinueClick = () => {
     if (currentRole === 'amor' || currentRole === 'floetenspieler') {
-      // Zu "sleep" Audio
       setCurrentAudioPhase('sleep');
       setFlowState('playing_audio');
     } else if (currentRole === 'urwolf') {
-      // Urwolf: direkt zu "close"
       setCurrentAudioPhase('close');
       setFlowState('playing_audio');
+    } else if (currentRole === 'reine_seele') {
+      proceedToNext();
     }
   };
 
@@ -233,13 +238,16 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
   const renderAction = () => {
     switch (currentRole) {
       case 'waisenkind':
-        return <ActionOrphan players={modifiedPlayers} onComplete={(name) => {
+        return <ActionOrphan players={modifiedPlayers} onComplete={(name, role) => {
           const orphan = modifiedPlayers.find(p => p.originalRole.id === 'waisenkind');
           if (orphan) {
             const updated = NightPhaseLogic.handleOrphanSelect(orphan.name, name, modifiedPlayers);
             setModifiedPlayers(updated);
           }
-          handleActionComplete();
+          setDisplayText(`Vorbild: ${name} - Rolle: ${role.name}`);
+          setTimeout(() => {
+            handleActionComplete();
+          }, 3000);
         }} />;
 
       case 'dieb':
@@ -305,16 +313,10 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
         }} />;
 
       case 'die_drei_brueder':
-        return <ActionSiblings text="Schaut euch um, wer euer Geschwisterkind ist." onComplete={handleActionComplete} />;
+        return <ActionSiblings text="Schaut euch an, wer eure Geschwister sind." onComplete={handleActionComplete} />;
 
       case 'die_zwei_schwestern':
-        return <ActionSiblings text="Schaut euch um, wer euer Geschwisterkind ist." onComplete={handleActionComplete} />;
-
-      case 'der_stotternde_richter':
-        return <ActionJudge onComplete={(cw) => {
-          NightPhaseLogic.handleJudgeCodeword(cw);
-          handleActionComplete();
-        }} />;
+        return <ActionSiblings text="Schaut euch an, wer eure Geschwister sind." onComplete={handleActionComplete} />;
 
       case 'seherin':
         return <ActionSeer 
@@ -372,14 +374,25 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
         return <ActionFox 
           players={modifiedPlayers} 
           alreadyChecked={nightActions.foxChecked}
-          onComplete={(name, hasWerewolf) => {
+          onComplete={(name) => {
             setNightActions(prev => ({ 
               ...prev, 
               foxChecked: [...prev.foxChecked, name] 
             }));
             const result = NightPhaseLogic.handleFoxSelect(name, modifiedPlayers);
             setModifiedPlayers(result.players);
-            handleActionComplete();
+            
+            setFlowState('show_action');
+            if (result.hasWerewolf) {
+              setDisplayText('✅ Einer der Drei ist ein Werwolf!');
+            } else {
+              setDisplayText('❌ Keiner der Drei ist ein Werwolf. Du hast deine Fähigkeit verloren!');
+            }
+            
+            setTimeout(() => {
+              setDisplayText('');
+              handleActionComplete();
+            }, 3000);
           }} 
         />;
 
@@ -396,6 +409,7 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
         }} />;
 
       default:
+        console.warn('⚠️ Keine Aktion für Rolle:', currentRole);
         return null;
     }
   };
@@ -420,6 +434,7 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
         {flowState === 'playing_audio' && (
           <div className="text-center space-y-6">
             <div className="text-6xl animate-pulse">🎙️</div>
+            <p className="text-sm text-white/60">Aktuelle Rolle: {currentRole}</p>
             <div className="flex justify-center gap-2">
               <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
               <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
@@ -430,19 +445,24 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
 
         {flowState === 'pause' && (
           <div className="text-center space-y-6">
-            {/* Keine Anzeige während Pause */}
+            {/* Pause */}
           </div>
         )}
 
         {flowState === 'show_action' && (
           <div className="space-y-6">
+            {displayText && (
+              <div className="bg-blue-600/30 border-2 border-blue-500 rounded-xl p-6 text-center mb-4">
+                <p className="text-2xl font-bold">{displayText}</p>
+              </div>
+            )}
             {renderAction()}
           </div>
         )}
 
         {flowState === 'show_continue' && (
           <div className="text-center space-y-6">
-            <p className="text-2xl text-white/90">{displayText}</p>
+            {displayText && <p className="text-2xl text-white/90">{displayText}</p>}
             <button
               onClick={handleContinueClick}
               className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg"
@@ -456,13 +476,19 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
   );
 };
 
-// Rollen-Sequenz Generator
 function generateRoleSequence(players: Player[], round: number): string[] {
   const sequence: string[] = [];
   const alive = players.filter(p => p.status === 'alive');
-  const hasRole = (roleId: string) => alive.some(p => p.originalRole.id === roleId);
+  
+  console.log(`🎮 Generiere Sequenz für Runde ${round}:`);
+  console.log('  Lebende Spieler:', alive.map(p => `${p.name} (${p.originalRole.id})`));
+  
+  const hasRole = (roleId: string) => {
+    const found = alive.some(p => p.originalRole.id === roleId);
+    console.log(`  ✓ hasRole('${roleId}'): ${found}`);
+    return found;
+  };
 
-  // Reine Seele vor "Augen schließen" (nur Runde 1)
   if (round === 1 && hasRole('reine_seele')) {
     sequence.push('reine_seele');
   }
@@ -482,7 +508,6 @@ function generateRoleSequence(players: Player[], round: number): string[] {
     if (hasRole('die_drei_brueder')) sequence.push('die_drei_brueder');
     if (hasRole('die_zwei_schwestern')) sequence.push('die_zwei_schwestern');
     if (hasRole('das_wilde_kind')) sequence.push('das_wilde_kind');
-    if (hasRole('der_stotternde_richter')) sequence.push('der_stotternde_richter');
   }
 
   if (hasRole('seherin')) sequence.push('seherin');
@@ -502,38 +527,38 @@ function generateRoleSequence(players: Player[], round: number): string[] {
 
   sequence.push('open_eyes');
 
+  console.log('  📋 Final sequence:', sequence);
+  
   return sequence;
 }
+// TEIL 2: ACTION COMPONENTS für NarratorNightFlow.tsx
+// Diese Komponenten NACH generateRoleSequence() einfügen!
 
-const ActionOrphan: React.FC<{ players: Player[]; onComplete: (name: string) => void }> = ({ players, onComplete }) => {
+const ActionOrphan: React.FC<{ players: Player[]; onComplete: (name: string, role: Role) => void }> = ({ players, onComplete }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string | null>(null);
   const orphan = players.find(p => p.originalRole.id === 'waisenkind');
   const available = players.filter(p => p.status === 'alive' && p.name !== orphan?.name);
+
+  const handleConfirm = () => {
+    if (!selected) return;
+    const selectedPlayer = players.find(p => p.name === selected);
+    if (selectedPlayer) {
+      onComplete(selected, selectedPlayer.role);
+    }
+  };
 
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-center">👶 Wähle ein Vorbild</h2>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {available.map((p) => (
-          <button
-            key={p.name}
-            onClick={() => setSelected(p.name)}
-            className={`py-3 px-4 rounded-xl font-bold transition ${
-              selected === p.name ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'
-            }`}
-          >
+          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {p.name}
           </button>
         ))}
       </div>
-      <button
-        onClick={() => selected && onComplete(selected)}
-        disabled={!selected}
-        className={`w-full py-3 rounded-xl font-bold ${
-          selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'
-        }`}
-      >
+      <button onClick={handleConfirm} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -543,30 +568,17 @@ const ActionOrphan: React.FC<{ players: Player[]; onComplete: (name: string) => 
 const ActionThief: React.FC<{ cards: Role[]; onComplete: (card: Role) => void }> = ({ cards, onComplete }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<Role | null>(null);
-
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-center">🃏 Wähle eine Karte</h2>
       <div className="grid grid-cols-2 gap-3">
         {cards.map((card) => (
-          <button
-            key={card.id}
-            onClick={() => setSelected(card)}
-            className={`py-4 px-4 rounded-xl font-bold transition ${
-              selected?.id === card.id ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'
-            }`}
-          >
+          <button key={card.id} onClick={() => setSelected(card)} className={`py-4 px-4 rounded-xl font-bold transition ${selected?.id === card.id ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {card.name}
           </button>
         ))}
       </div>
-      <button
-        onClick={() => selected && onComplete(selected)}
-        disabled={!selected}
-        className={`w-full py-3 rounded-xl font-bold ${
-          selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'
-        }`}
-      >
+      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -576,30 +588,17 @@ const ActionThief: React.FC<{ cards: Role[]; onComplete: (card: Role) => void }>
 const ActionJester: React.FC<{ cards: Role[]; onComplete: (card: Role) => void }> = ({ cards, onComplete }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<Role | null>(null);
-
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-center">🎭 Wähle eine Rolle</h2>
       <div className="grid grid-cols-3 gap-3">
         {cards.map((card) => (
-          <button
-            key={card.id}
-            onClick={() => setSelected(card)}
-            className={`py-4 px-3 rounded-xl font-bold transition text-sm ${
-              selected?.id === card.id ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'
-            }`}
-          >
+          <button key={card.id} onClick={() => setSelected(card)} className={`py-4 px-3 rounded-xl font-bold transition text-sm ${selected?.id === card.id ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {card.name}
           </button>
         ))}
       </div>
-      <button
-        onClick={() => selected && onComplete(selected)}
-        disabled={!selected}
-        className={`w-full py-3 rounded-xl font-bold ${
-          selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'
-        }`}
-      >
+      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -611,42 +610,23 @@ const ActionCupid: React.FC<{ players: Player[]; onComplete: (l1: string, l2: st
   const [lover1, setLover1] = useState<string | null>(null);
   const [lover2, setLover2] = useState<string | null>(null);
   const alive = players.filter(p => p.status === 'alive');
-
   const handlePlayerClick = (name: string) => {
-    if (lover1 === name) {
-      setLover1(null);
-    } else if (lover2 === name) {
-      setLover2(null);
-    } else if (!lover1) {
-      setLover1(name);
-    } else if (!lover2) {
-      setLover2(name);
-    }
+    if (lover1 === name) setLover1(null);
+    else if (lover2 === name) setLover2(null);
+    else if (!lover1) setLover1(name);
+    else if (!lover2) setLover2(name);
   };
-
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-center">💘 Wähle 2 Verliebte</h2>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {alive.map((p) => (
-          <button
-            key={p.name}
-            onClick={() => handlePlayerClick(p.name)}
-            className={`py-3 px-4 rounded-xl font-bold transition ${
-              lover1 === p.name || lover2 === p.name ? 'bg-pink-600 text-white' : 'bg-white/20 hover:bg-white/30'
-            }`}
-          >
+          <button key={p.name} onClick={() => handlePlayerClick(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${lover1 === p.name || lover2 === p.name ? 'bg-pink-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {p.name}
           </button>
         ))}
       </div>
-      <button
-        onClick={() => lover1 && lover2 && onComplete(lover1, lover2)}
-        disabled={!lover1 || !lover2}
-        className={`w-full py-3 rounded-xl font-bold ${
-          lover1 && lover2 ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'
-        }`}
-      >
+      <button onClick={() => lover1 && lover2 && onComplete(lover1, lover2)} disabled={!lover1 || !lover2} className={`w-full py-3 rounded-xl font-bold ${lover1 && lover2 ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -656,86 +636,45 @@ const ActionCupid: React.FC<{ players: Player[]; onComplete: (l1: string, l2: st
 const ActionAlphaWolf: React.FC<{ players: Player[]; onComplete: (name: string) => void }> = ({ players, onComplete }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string | null>(null);
-  const targets = players.filter(p => 
-    !['werwolf', 'der_grosse_boese_werwolf', 'der_weisse_werwolf', 'urwolf'].includes(p.role.id) &&
-    p.status === 'alive'
-  );
-
+  const targets = players.filter(p => !['werwolf', 'der_grosse_boese_werwolf', 'der_weisse_werwolf', 'urwolf'].includes(p.role.id) && p.status === 'alive');
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-center">🌙 Verwandle jemanden</h2>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {targets.map((p) => (
-          <button
-            key={p.name}
-            onClick={() => setSelected(p.name)}
-            className={`py-3 px-4 rounded-xl font-bold transition ${
-              selected === p.name ? 'bg-purple-600 text-white' : 'bg-white/20 hover:bg-white/30'
-            }`}
-          >
+          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-purple-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {p.name}
           </button>
         ))}
       </div>
-      <button
-        onClick={() => selected && onComplete(selected)}
-        disabled={!selected}
-        className={`w-full py-3 rounded-xl font-bold ${
-          selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'
-        }`}
-      >
+      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
   );
 };
 
-const ActionPiper: React.FC<{ 
-  players: Player[]; 
-  alreadyEnchanted: string[];
-  onComplete: (p1: string, p2: string) => void;
-}> = ({ players, alreadyEnchanted, onComplete }) => {
+const ActionPiper: React.FC<{ players: Player[]; alreadyEnchanted: string[]; onComplete: (p1: string, p2: string) => void }> = ({ players, alreadyEnchanted, onComplete }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string[]>([]);
   const piper = players.find(p => p.originalRole.id === 'floetenspieler');
-  const available = players.filter(p => 
-    p.status === 'alive' && 
-    !alreadyEnchanted.includes(p.name) &&
-    p.name !== piper?.name
-  );
-
+  const available = players.filter(p => p.status === 'alive' && !alreadyEnchanted.includes(p.name) && p.name !== piper?.name);
   const togglePlayer = (name: string) => {
-    if (selected.includes(name)) {
-      setSelected(selected.filter(n => n !== name));
-    } else if (selected.length < 2) {
-      setSelected([...selected, name]);
-    }
+    if (selected.includes(name)) setSelected(selected.filter(n => n !== name));
+    else if (selected.length < 2) setSelected([...selected, name]);
   };
-
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-center">🎵 Wähle 2 Personen</h2>
       <p className="text-center text-sm">Gewählt: {selected.length} / 2</p>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {available.map((p) => (
-          <button
-            key={p.name}
-            onClick={() => togglePlayer(p.name)}
-            className={`py-3 px-4 rounded-xl font-bold transition ${
-              selected.includes(p.name) ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'
-            }`}
-          >
+          <button key={p.name} onClick={() => togglePlayer(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected.includes(p.name) ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {p.name}
           </button>
         ))}
       </div>
-      <button
-        onClick={() => selected.length === 2 && onComplete(selected[0], selected[1])}
-        disabled={selected.length !== 2}
-        className={`w-full py-3 rounded-xl font-bold ${
-          selected.length === 2 ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'
-        }`}
-      >
+      <button onClick={() => selected.length === 2 && onComplete(selected[0], selected[1])} disabled={selected.length !== 2} className={`w-full py-3 rounded-xl font-bold ${selected.length === 2 ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -747,42 +686,24 @@ const ActionBitterOldMan: React.FC<{ players: Player[]; onComplete: (g1: string[
   const [group1, setGroup1] = useState<string[]>([]);
   const alive = players.filter(p => p.status === 'alive');
   const halfCount = Math.floor(alive.length / 2);
-
   const togglePlayer = (name: string) => {
-    if (group1.includes(name)) {
-      setGroup1(group1.filter(n => n !== name));
-    } else if (group1.length < halfCount) {
-      setGroup1([...group1, name]);
-    }
+    if (group1.includes(name)) setGroup1(group1.filter(n => n !== name));
+    else if (group1.length < halfCount) setGroup1([...group1, name]);
   };
-
   const group2 = alive.filter(p => !group1.includes(p.name)).map(p => p.name);
   const isValid = group1.length === halfCount;
-
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-center">👴 Wähle die Hälfte</h2>
       <p className="text-center text-sm">Gewählt: {group1.length} / {halfCount}</p>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {alive.map((p) => (
-          <button
-            key={p.name}
-            onClick={() => togglePlayer(p.name)}
-            className={`py-3 px-4 rounded-xl font-bold transition ${
-              group1.includes(p.name) ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'
-            }`}
-          >
+          <button key={p.name} onClick={() => togglePlayer(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${group1.includes(p.name) ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {p.name}
           </button>
         ))}
       </div>
-      <button
-        onClick={() => isValid && onComplete(group1, group2)}
-        disabled={!isValid}
-        className={`w-full py-3 rounded-xl font-bold ${
-          isValid ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'
-        }`}
-      >
+      <button onClick={() => isValid && onComplete(group1, group2)} disabled={!isValid} className={`w-full py-3 rounded-xl font-bold ${isValid ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -794,16 +715,10 @@ const ActionWolfhound: React.FC<{ onComplete: (choice: 'dorfbewohner' | 'werwolf
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-center">🐺 Wähle deine Seite</h2>
       <div className="grid grid-cols-2 gap-4">
-        <button
-          onClick={() => onComplete('dorfbewohner')}
-          className="py-6 px-4 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-lg"
-        >
+        <button onClick={() => onComplete('dorfbewohner')} className="py-6 px-4 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-lg">
           👨‍🌾 Dorfbewohner
         </button>
-        <button
-          onClick={() => onComplete('werwolf')}
-          className="py-6 px-4 bg-red-600 hover:bg-red-700 rounded-xl font-bold text-lg"
-        >
+        <button onClick={() => onComplete('werwolf')} className="py-6 px-4 bg-red-600 hover:bg-red-700 rounded-xl font-bold text-lg">
           🐺 Werwolf
         </button>
       </div>
@@ -816,30 +731,17 @@ const ActionWildChild: React.FC<{ players: Player[]; onComplete: (name: string) 
   const [selected, setSelected] = useState<string | null>(null);
   const wildChild = players.find(p => p.originalRole.id === 'das_wilde_kind');
   const available = players.filter(p => p.status === 'alive' && p.name !== wildChild?.name);
-
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-center">🌲 Wähle dein Vorbild</h2>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {available.map((p) => (
-          <button
-            key={p.name}
-            onClick={() => setSelected(p.name)}
-            className={`py-3 px-4 rounded-xl font-bold transition ${
-              selected === p.name ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'
-            }`}
-          >
+          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {p.name}
           </button>
         ))}
       </div>
-      <button
-        onClick={() => selected && onComplete(selected)}
-        disabled={!selected}
-        className={`w-full py-3 rounded-xl font-bold ${
-          selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'
-        }`}
-      >
+      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -852,55 +754,20 @@ const ActionSiblings: React.FC<{ text: string; onComplete: () => void }> = ({ te
     <div className="space-y-4 text-center">
       <h2 className="text-2xl font-bold">👨‍👩‍👧‍👦</h2>
       <p className="text-xl text-white/90">{text}</p>
-      <button
-        onClick={onComplete}
-        className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg"
-      >
+      <button onClick={onComplete} className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg">
         {t('next')}
       </button>
     </div>
   );
 };
 
-const ActionJudge: React.FC<{ onComplete: (cw: string) => void }> = ({ onComplete }) => {
-  const { t } = useTranslation();
-  const [codeword, setCodeword] = useState('');
-
-  return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">⚖️ Codewort eingeben</h2>
-      <input
-        type="text"
-        value={codeword}
-        onChange={(e) => setCodeword(e.target.value)}
-        className="w-full py-3 px-4 bg-white/20 rounded-xl text-white placeholder-white/50"
-        placeholder="Codewort..."
-      />
-      <button
-        onClick={() => codeword && onComplete(codeword)}
-        disabled={!codeword}
-        className={`w-full py-3 rounded-xl font-bold ${
-          codeword ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'
-        }`}
-      >
-        {t('confirm')}
-      </button>
-    </div>
-  );
-};
-
-const ActionSeer: React.FC<{ 
-  players: Player[]; 
-  alreadyChecked: string[];
-  onComplete: (checkedName: string) => void;
-}> = ({ players, alreadyChecked, onComplete }) => {
+const ActionSeer: React.FC<{ players: Player[]; alreadyChecked: string[]; onComplete: (checkedName: string) => void }> = ({ players, alreadyChecked, onComplete }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(false);
   const seer = players.find(p => p.originalRole.id === 'seherin');
   const available = players.filter(p => p.status === 'alive' && p.name !== seer?.name);
   const selectedPlayer = players.find(p => p.name === selected);
-
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-center">🔮 Wähle eine Person</h2>
@@ -910,27 +777,13 @@ const ActionSeer: React.FC<{
             {available.map((p) => {
               const wasChecked = alreadyChecked.includes(p.name);
               return (
-                <button
-                  key={p.name}
-                  onClick={() => setSelected(p.name)}
-                  className={`py-3 px-4 rounded-xl font-bold transition ${
-                    selected === p.name ? 'bg-blue-600 text-white' : 
-                    wasChecked ? 'bg-gray-700 text-white/60' : 
-                    'bg-white/20 hover:bg-white/30'
-                  }`}
-                >
+                <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-blue-600 text-white' : wasChecked ? 'bg-gray-700 text-white/60' : 'bg-white/20 hover:bg-white/30'}`}>
                   {p.name} {wasChecked && '✓'}
                 </button>
               );
             })}
           </div>
-          <button
-            onClick={() => setRevealed(true)}
-            disabled={!selected}
-            className={`w-full py-3 rounded-xl font-bold ${
-              selected ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-600 cursor-not-allowed'
-            }`}
-          >
+          <button onClick={() => setRevealed(true)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-600 cursor-not-allowed'}`}>
             Rolle aufdecken
           </button>
         </>
@@ -940,10 +793,7 @@ const ActionSeer: React.FC<{
             <p className="text-xl mb-2">{selectedPlayer?.name}</p>
             <p className="text-3xl font-bold">{selectedPlayer?.role.name}</p>
           </div>
-          <button 
-            onClick={() => selected && onComplete(selected)} 
-            className="w-full py-3 bg-green-600 hover:bg-green-700 rounded-xl font-bold"
-          >
+          <button onClick={() => selected && onComplete(selected)} className="w-full py-3 bg-green-600 hover:bg-green-700 rounded-xl font-bold">
             {t('next')}
           </button>
         </>
@@ -956,30 +806,17 @@ const ActionHealer: React.FC<{ players: Player[]; onComplete: (name: string) => 
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string | null>(null);
   const alive = players.filter(p => p.status === 'alive');
-
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-center">🩺 Wähle jemanden</h2>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {alive.map((p) => (
-          <button
-            key={p.name}
-            onClick={() => setSelected(p.name)}
-            className={`py-3 px-4 rounded-xl font-bold transition ${
-              selected === p.name ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'
-            }`}
-          >
+          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {p.name}
           </button>
         ))}
       </div>
-      <button
-        onClick={() => selected && onComplete(selected)}
-        disabled={!selected}
-        className={`w-full py-3 rounded-xl font-bold ${
-          selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'
-        }`}
-      >
+      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -989,119 +826,65 @@ const ActionHealer: React.FC<{ players: Player[]; onComplete: (name: string) => 
 const ActionWerewolves: React.FC<{ players: Player[]; onComplete: (name: string) => void }> = ({ players, onComplete }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string | null>(null);
-  const targets = players.filter(p => 
-    !['werwolf', 'der_grosse_boese_werwolf', 'der_weisse_werwolf', 'urwolf'].includes(p.role.id) &&
-    p.status === 'alive'
-  );
-
+  const targets = players.filter(p => !['werwolf', 'der_grosse_boese_werwolf', 'der_weisse_werwolf', 'urwolf'].includes(p.role.id) && p.status === 'alive');
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-center">🐺 Wähle ein Opfer</h2>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {targets.map((p) => (
-          <button
-            key={p.name}
-            onClick={() => setSelected(p.name)}
-            className={`py-3 px-4 rounded-xl font-bold transition ${
-              selected === p.name ? 'bg-red-600 text-white' : 'bg-white/20 hover:bg-white/30'
-            }`}
-          >
+          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-red-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {p.name}
           </button>
         ))}
       </div>
-      <button
-        onClick={() => selected && onComplete(selected)}
-        disabled={!selected}
-        className={`w-full py-3 rounded-xl font-bold ${
-          selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'
-        }`}
-      >
+      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
   );
 };
 
-const ActionWitch: React.FC<{ 
-  players: Player[]; 
-  victimName: string | null;
-  healPotionUsed: boolean;
-  poisonPotionUsed: boolean;
-  onComplete: (heal: boolean, poisonTarget: string | null) => void;
-}> = ({ players, victimName, healPotionUsed, poisonPotionUsed, onComplete }) => {
+const ActionWitch: React.FC<{ players: Player[]; victimName: string | null; healPotionUsed: boolean; poisonPotionUsed: boolean; onComplete: (heal: boolean, poisonTarget: string | null) => void }> = ({ players, victimName, healPotionUsed, poisonPotionUsed, onComplete }) => {
   const { t } = useTranslation();
   const [healed, setHealed] = useState(false);
   const [poisonTarget, setPoisonTarget] = useState<string | null>(null);
   const witch = players.find(p => p.originalRole.id === 'hexe');
-  const alive = players.filter(p => 
-    p.status === 'alive' && 
-    p.name !== witch?.name && 
-    p.name !== victimName // Kann nicht das Opfer vergiften
-  );
-
+  const alive = players.filter(p => p.status === 'alive' && p.name !== witch?.name && p.name !== victimName);
   const handleHealClick = () => {
     if (healPotionUsed || !victimName) return;
     setHealed(!healed);
   };
-
   const handlePoisonClick = (name: string) => {
     if (poisonPotionUsed) return;
     setPoisonTarget(poisonTarget === name ? null : name);
   };
-
-  const handleConfirm = () => {
-    onComplete(healed, poisonTarget);
-  };
-
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-center">🧪 Hexe</h2>
-      
       {victimName && (
         <div className="bg-red-600/30 border-2 border-red-500 rounded-xl p-4 text-center">
           <p className="text-sm">Opfer der Werwölfe:</p>
           <p className="text-xl font-bold">💀 {victimName}</p>
         </div>
       )}
-
       <div className="space-y-3">
-        <button
-          onClick={handleHealClick}
-          disabled={healPotionUsed || !victimName}
-          className={`w-full py-4 rounded-xl font-bold transition ${
-            healed ? 'bg-green-600 text-white' :
-            healPotionUsed || !victimName ? 'bg-gray-600 cursor-not-allowed text-white/50' :
-            'bg-green-500 hover:bg-green-600'
-          }`}
-        >
+        <button onClick={handleHealClick} disabled={healPotionUsed || !victimName} className={`w-full py-4 rounded-xl font-bold transition ${healed ? 'bg-green-600 text-white' : healPotionUsed || !victimName ? 'bg-gray-600 cursor-not-allowed text-white/50' : 'bg-green-500 hover:bg-green-600'}`}>
           {healed ? '✅ Geheilt' : healPotionUsed ? '❌ Heiltrank verbraucht' : '💚 Heilen'}
         </button>
-
         <p className="text-center font-bold">☠️ Vergiften</p>
         {poisonPotionUsed ? (
           <p className="text-center text-white/60">❌ Gifttrank verbraucht</p>
         ) : (
           <div className="grid grid-cols-2 gap-3 max-h-60 overflow-y-auto">
             {alive.map((p) => (
-              <button
-                key={p.name}
-                onClick={() => handlePoisonClick(p.name)}
-                className={`py-3 px-4 rounded-xl font-bold transition ${
-                  poisonTarget === p.name ? 'bg-purple-600 text-white' : 'bg-white/20 hover:bg-white/30'
-                }`}
-              >
+              <button key={p.name} onClick={() => handlePoisonClick(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${poisonTarget === p.name ? 'bg-purple-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
                 {p.name}
               </button>
             ))}
           </div>
         )}
       </div>
-
-      <button
-        onClick={handleConfirm}
-        className="w-full py-3 rounded-xl font-bold bg-purple-600 hover:bg-purple-700"
-      >
+      <button onClick={() => onComplete(healed, poisonTarget)} className="w-full py-3 rounded-xl font-bold bg-purple-600 hover:bg-purple-700">
         {t('confirm')}
       </button>
     </div>
@@ -1113,45 +896,27 @@ const ActionHomeless: React.FC<{ players: Player[]; onComplete: (name: string) =
   const [selected, setSelected] = useState<string | null>(null);
   const homeless = players.find(p => p.originalRole.id === 'der_obdachlose');
   const available = players.filter(p => p.status === 'alive' && p.name !== homeless?.name);
-
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-center">🏚️ Wo übernachtest du?</h2>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {available.map((p) => (
-          <button
-            key={p.name}
-            onClick={() => setSelected(p.name)}
-            className={`py-3 px-4 rounded-xl font-bold transition ${
-              selected === p.name ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'
-            }`}
-          >
+          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {p.name}
           </button>
         ))}
       </div>
-      <button
-        onClick={() => selected && onComplete(selected)}
-        disabled={!selected}
-        className={`w-full py-3 rounded-xl font-bold ${
-          selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'
-        }`}
-      >
+      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
   );
 };
 
-const ActionFox: React.FC<{ 
-  players: Player[]; 
-  alreadyChecked: string[];
-  onComplete: (name: string, hasWerewolf: boolean) => void;
-}> = ({ players, alreadyChecked, onComplete }) => {
+const ActionFox: React.FC<{ players: Player[]; alreadyChecked: string[]; onComplete: (name: string) => void }> = ({ players, alreadyChecked, onComplete }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string | null>(null);
   const alive = players.filter(p => p.status === 'alive');
-
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-center">🦊 Wähle eine Person</h2>
@@ -1159,27 +924,13 @@ const ActionFox: React.FC<{
         {alive.map((p) => {
           const wasChecked = alreadyChecked.includes(p.name);
           return (
-            <button
-              key={p.name}
-              onClick={() => setSelected(p.name)}
-              className={`py-3 px-4 rounded-xl font-bold transition ${
-                selected === p.name ? 'bg-blue-600 text-white' :
-                wasChecked ? 'bg-gray-700 text-white/60' :
-                'bg-white/20 hover:bg-white/30'
-              }`}
-            >
+            <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-blue-600 text-white' : wasChecked ? 'bg-gray-700 text-white/60' : 'bg-white/20 hover:bg-white/30'}`}>
               {p.name} {wasChecked && '✓'}
             </button>
           );
         })}
       </div>
-      <button
-        onClick={() => selected && onComplete(selected, false)}
-        disabled={!selected}
-        className={`w-full py-3 rounded-xl font-bold ${
-          selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'
-        }`}
-      >
+      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -1189,56 +940,40 @@ const ActionFox: React.FC<{
 const ActionBigBadWolf: React.FC<{ players: Player[]; onComplete: (name: string) => void }> = ({ players, onComplete }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string | null>(null);
-  const targets = players.filter(p => 
-    !['werwolf', 'der_grosse_boese_werwolf', 'der_weisse_werwolf', 'urwolf'].includes(p.role.id) &&
-    p.status === 'alive'
-  );
-
+  const targets = players.filter(p => !['werwolf', 'der_grosse_boese_werwolf', 'der_weisse_werwolf', 'urwolf'].includes(p.role.id) && p.status === 'alive');
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-center">🐺💀 2. Opfer</h2>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {targets.map((p) => (
-          <button
-            key={p.name}
-            onClick={() => setSelected(p.name)}
-            className={`py-3 px-4 rounded-xl font-bold transition ${
-              selected === p.name ? 'bg-red-600 text-white' : 'bg-white/20 hover:bg-white/30'
-            }`}
-          >
+          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-red-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {p.name}
           </button>
         ))}
       </div>
-      <button
-        onClick={() => selected && onComplete(selected)}
-        disabled={!selected}
-        className={`w-full py-3 rounded-xl font-bold ${
-          selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'
-        }`}
-      >
+      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
   );
 };
 
+// TEIL 3: Weißer Wolf + Export
+// Diese Action-Komponente vervollständigt die Datei!
+
 const ActionWhiteWolf: React.FC<{ players: Player[]; onComplete: (name: string) => void }> = ({ players, onComplete }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string | null>(null);
-  const werewolves = players.filter(p => 
-    ['werwolf', 'der_grosse_boese_werwolf', 'urwolf'].includes(p.role.id) &&
-    p.status === 'alive'
-  );
-
+  const werewolves = players.filter(p => ['werwolf', 'der_grosse_boese_werwolf', 'urwolf'].includes(p.role.id) && p.status === 'alive');
+  
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-center">⚪🐺 Töte einen Werwolf</h2>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {werewolves.map((p) => (
-          <button
-            key={p.name}
-            onClick={() => setSelected(p.name)}
+          <button 
+            key={p.name} 
+            onClick={() => setSelected(p.name)} 
             className={`py-3 px-4 rounded-xl font-bold transition ${
               selected === p.name ? 'bg-red-600 text-white' : 'bg-white/20 hover:bg-white/30'
             }`}
@@ -1247,9 +982,9 @@ const ActionWhiteWolf: React.FC<{ players: Player[]; onComplete: (name: string) 
           </button>
         ))}
       </div>
-      <button
-        onClick={() => selected && onComplete(selected)}
-        disabled={!selected}
+      <button 
+        onClick={() => selected && onComplete(selected)} 
+        disabled={!selected} 
         className={`w-full py-3 rounded-xl font-bold ${
           selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'
         }`}

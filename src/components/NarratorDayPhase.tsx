@@ -1,6 +1,6 @@
-// src/components/NarratorDayPhase.tsx - MIT BÄRENKNURREN & SÜNDENBOCK
+// src/components/NarratorDayPhase.tsx - MIT RICHTER AM TAG 1
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Player } from '../types';
 import { useTranslation } from '../LanguageContext';
 import { gameStateManager } from '../services/GameStateManager';
@@ -10,32 +10,55 @@ interface NarratorDayPhaseProps {
   players: Player[];
   nightDeaths: string[];
   hunterDeaths: string[];
+  currentDay: number;
   onDayComplete: (updatedPlayers: Player[]) => void;
   onGameEnd: (winner: string) => void;
   onRestart: () => void;
   onGoHome: () => void;
 }
 
-type DayPhase = 'bear_check' | 'show_deaths' | 'maid_action' | 'hunter_action' | 'discussion' | 'voting' | 'show_day_deaths' | 'win_screen';
+type DayPhase = 
+  | 'show_deaths' 
+  | 'maid_action' 
+  | 'hunter_action' 
+  | 'discussion' 
+  | 'voting' 
+  | 'judge_close_eyes'
+  | 'judge_audio'
+  | 'judge_decision'
+  | 'judge_eyes_close'
+  | 'judge_eyes_open'
+  | 'judge_announcement'
+  | 'second_voting'
+  | 'show_day_deaths' 
+  | 'win_screen';
 
 const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
   players,
   nightDeaths,
   hunterDeaths,
+  currentDay,
   onDayComplete,
   onGameEnd,
   onRestart,
   onGoHome,
 }) => {
   const { t, locale } = useTranslation();
-  const [phase, setPhase] = useState<DayPhase>('bear_check');
+  const [phase, setPhase] = useState<DayPhase>('show_deaths');
   const [dayPlayers, setDayPlayers] = useState<Player[]>(players);
   const [dayDeaths, setDayDeaths] = useState<string[]>([]);
   const [currentHunterIndex, setCurrentHunterIndex] = useState(0);
   const [winner, setWinner] = useState<string | null>(null);
   const [bearGrowled, setBearGrowled] = useState(false);
+  const [firstVotedPlayer, setFirstVotedPlayer] = useState<string | null>(null);
+  const [judgeWantsSecondVote, setJudgeWantsSecondVote] = useState(false);
 
-  // KORRIGIERTE Gewinn-Prüfung
+  // Bärenführer Check beim Mount
+  useEffect(() => {
+    const shouldGrowl = gameStateManager.checkBearAlert(dayPlayers);
+    setBearGrowled(shouldGrowl);
+  }, []);
+
   const checkWinCondition = (currentPlayers: Player[]): string | null => {
     const alivePlayers = currentPlayers.filter(p => p.status === 'alive');
     
@@ -71,23 +94,6 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
     if (aliveWerewolves.length === 0 && aliveNonWerewolves.length > 0) return 'villagers';
 
     return null;
-  };
-
-  // ============ BÄREN-CHECK ============
-  const handleBearCheck = () => {
-    const shouldGrowl = gameStateManager.checkBearAlert(dayPlayers);
-    if (shouldGrowl) {
-      setBearGrowled(true);
-      audioManager.playAudio(locale, 'narrator_day_bear_growl', () => {
-        setTimeout(() => {
-          setPhase('show_deaths');
-        }, 2000);
-      }, () => {
-        setPhase('show_deaths');
-      });
-    } else {
-      setPhase('show_deaths');
-    }
   };
 
   // ============ TOD-ANZEIGE ============
@@ -185,8 +191,156 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
     }
   };
 
-  // ============ ABSTIMMUNG ============
+  // ============ ERSTE ABSTIMMUNG ============
   const handleVoting = (selectedName: string) => {
+    const votedPlayer = dayPlayers.find(p => p.name === selectedName);
+    if (!votedPlayer) return;
+
+    if (votedPlayer.originalRole.id === 'dorfdepp') {
+      setPhase('show_day_deaths');
+      return;
+    }
+
+    if (votedPlayer.originalRole.id === 'der_engel') {
+      setWinner('angel');
+      setPhase('win_screen');
+      return;
+    }
+
+    const newDeaths = [...dayDeaths, selectedName];
+    setDayDeaths(newDeaths);
+
+    let newPlayers = dayPlayers.map(p =>
+      p.name === selectedName ? { ...p, status: 'dead' as const } : p
+    );
+
+    const lovers = gameStateManager.getLovers();
+    if (lovers.includes(selectedName)) {
+      const otherLover = lovers.find(l => l !== selectedName);
+      if (otherLover) {
+        newPlayers = newPlayers.map(p =>
+          p.name === otherLover ? { ...p, status: 'dead' as const } : p
+        );
+        newDeaths.push(otherLover);
+        setDayDeaths(newDeaths);
+      }
+    }
+
+    setDayPlayers(newPlayers);
+    setFirstVotedPlayer(selectedName);
+
+    const winnerCheck = checkWinCondition(newPlayers);
+  if (winnerCheck) {
+    setWinner(winnerCheck);
+    setPhase('win_screen');
+    return; 
+  }
+
+    // Richter nur am Tag 1 UND wenn er noch lebt
+    const judgeAlive = newPlayers.find(p => 
+      p.originalRole.id === 'der_stotternde_richter' && 
+      p.status === 'alive'
+    );
+
+    if (currentDay === 1 && judgeAlive) {
+      setPhase('judge_close_eyes');
+    } else if (votedPlayer.originalRole.id === 'jaeger') {
+      setPhase('hunter_action');
+      setCurrentHunterIndex(0);
+    } else {
+      const winnerCheck = checkWinCondition(newPlayers);
+      if (winnerCheck) {
+        setWinner(winnerCheck);
+        setPhase('win_screen');
+      } else {
+        setPhase('show_day_deaths');
+      }
+    }
+  };
+
+  // ============ RICHTER AUDIO SEQUENZ ============
+  useEffect(() => {
+    if (phase === 'judge_close_eyes') {
+      audioManager.playAudio(
+        locale,
+        'narrator_close_eyes',
+        () => {
+          setTimeout(() => {
+            setPhase('judge_audio');
+          }, 3000);
+        },
+        () => {
+          setPhase('judge_audio');
+        }
+      );
+    } else if (phase === 'judge_audio') {
+      audioManager.playAudio(
+        locale,
+        'narrator_richter_open',
+        () => {
+          setPhase('judge_decision');
+        },
+        () => {
+          setPhase('judge_decision');
+        }
+      );
+    } else if (phase === 'judge_eyes_close') {
+      audioManager.playAudio(
+        locale,
+        'narrator_richter_close',
+        () => {
+          setTimeout(() => {
+            setPhase('judge_eyes_open');
+          }, 3000);
+        },
+        () => {
+          setPhase('judge_eyes_open');
+        }
+      );
+    } else if (phase === 'judge_eyes_open') {
+      audioManager.playAudio(
+        locale,
+        'narrator_open_eyes',
+        () => {
+          setTimeout(() => {
+            setPhase('judge_announcement');
+          }, 3000);
+        },
+        () => {
+          setPhase('judge_announcement');
+        }
+      );
+    }
+  }, [phase, locale]);
+
+  const handleJudgeDecision = (wantsSecond: boolean) => {
+    setJudgeWantsSecondVote(wantsSecond);
+    setPhase('judge_eyes_close');
+  };
+
+  const handleJudgeAnnouncement = () => {
+    if (judgeWantsSecondVote) {
+      setPhase('second_voting');
+    } else {
+      // Prüfe ob Jäger gestorben ist
+      const firstVoted = dayPlayers.find(p => p.name === firstVotedPlayer);
+      if (firstVoted?.originalRole.id === 'jaeger') {
+        setPhase('hunter_action');
+        setCurrentHunterIndex(0);
+      } else {
+        const winnerCheck = checkWinCondition(dayPlayers);
+        if (winnerCheck) {
+          setWinner(winnerCheck);
+          setPhase('win_screen');
+        } else {
+          setPhase('show_day_deaths');
+        }
+      }
+    }
+  };
+
+  // ============ ZWEITE ABSTIMMUNG ============
+  const handleSecondVoting = (selectedName: string) => {
     const votedPlayer = dayPlayers.find(p => p.name === selectedName);
     if (!votedPlayer) return;
 
@@ -245,7 +399,6 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
     
     if (!scapegoat) return;
 
-    // Sündenbock stirbt direkt
     const newDeaths = [...dayDeaths, scapegoat.name];
     setDayDeaths(newDeaths);
 
@@ -253,7 +406,6 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
       p.name === scapegoat.name ? { ...p, status: 'dead' as const } : p
     );
 
-    // Verliebte-Logik
     const lovers = gameStateManager.getLovers();
     if (lovers.includes(scapegoat.name)) {
       const otherLover = lovers.find(l => l !== scapegoat.name);
@@ -268,7 +420,6 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
 
     setDayPlayers(newPlayers);
 
-    // Gewinn-Check
     const winnerCheck = checkWinCondition(newPlayers);
     if (winnerCheck) {
       setWinner(winnerCheck);
@@ -303,30 +454,10 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
     }
   };
 
-  // Prüfe ob Sündenbock lebt
   const scapegoatAlive = dayPlayers.some(p => 
     p.originalRole.id === 'suendenbock' && 
     p.status === 'alive'
   );
-
-  if (phase === 'bear_check') {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-gray-900 via-brown-900 to-black">
-        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
-          <div className="text-center space-y-6">
-            <div className="text-6xl">🐻</div>
-            <h1 className="text-3xl font-bold">Bären-Check...</h1>
-            <button
-              onClick={handleBearCheck}
-              className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg"
-            >
-              {t('next')}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (phase === 'win_screen') {
     return (
@@ -501,7 +632,7 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
       <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-yellow-900 via-orange-900 to-red-900">
         <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
           <h1 className="text-4xl font-bold text-center mb-8">
-            🗳️ {t('narrator_day_voting')}
+            🗳️ Erste Abstimmung
           </h1>
           <p className="text-xl text-center mb-8 text-white/80">
             Wählt gemeinsam eine Person aus
@@ -514,6 +645,139 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
                 <button
                   key={player.name}
                   onClick={() => handleVoting(player.name)}
+                  className="py-4 px-6 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition transform hover:scale-105"
+                >
+                  {player.name}
+                </button>
+              ))}
+          </div>
+
+          {scapegoatAlive && (
+            <button
+              onClick={handleScapegoatDeath}
+              className="w-full py-4 px-8 bg-yellow-600 hover:bg-yellow-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
+            >
+              🐐 Gleichstand - Sündenbock stirbt
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'judge_close_eyes' || phase === 'judge_audio') {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-indigo-900 via-purple-900 to-blue-900">
+        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
+          <div className="text-center space-y-6">
+            <div className="text-6xl animate-pulse">🎙️</div>
+            <div className="flex justify-center gap-2">
+              <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'judge_decision') {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-indigo-900 via-purple-900 to-blue-900">
+        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
+          <h1 className="text-4xl font-bold text-center mb-8">
+            ⚖️ Stotternder Richter
+          </h1>
+          <p className="text-2xl text-center mb-12 text-white/90">
+            Soll eine zweite Abstimmung stattfinden?
+          </p>
+
+          <div className="grid grid-cols-2 gap-6">
+            <button
+              onClick={() => handleJudgeDecision(true)}
+              className="py-8 px-6 bg-green-600 hover:bg-green-700 text-white font-bold text-2xl rounded-xl transition transform hover:scale-105"
+            >
+              ✅ Ja
+            </button>
+            <button
+              onClick={() => handleJudgeDecision(false)}
+              className="py-8 px-6 bg-red-600 hover:bg-red-700 text-white font-bold text-2xl rounded-xl transition transform hover:scale-105"
+            >
+              ❌ Nein
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'judge_eyes_close' || phase === 'judge_eyes_open') {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-indigo-900 via-purple-900 to-blue-900">
+        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
+          <div className="text-center space-y-6">
+            <div className="text-6xl animate-pulse">🎙️</div>
+            <div className="flex justify-center gap-2">
+              <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'judge_announcement') {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-indigo-900 via-purple-900 to-blue-900">
+        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
+          <h1 className="text-4xl font-bold text-center mb-8">
+            ⚖️ Richter Entscheidung
+          </h1>
+          <div className="bg-blue-600/30 border-2 border-blue-500 rounded-xl p-8 text-center mb-8">
+            {judgeWantsSecondVote ? (
+              <>
+                <div className="text-6xl mb-4">✅</div>
+                <p className="text-2xl font-bold">Der Richter hat eine zweite Abstimmung angeordnet!</p>
+              </>
+            ) : (
+              <>
+                <div className="text-6xl mb-4">❌</div>
+                <p className="text-2xl font-bold">Es gibt keine zweite Abstimmung.</p>
+              </>
+            )}
+          </div>
+          <button
+            onClick={handleJudgeAnnouncement}
+            className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
+          >
+            {t('next')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'second_voting') {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-yellow-900 via-orange-900 to-red-900">
+        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
+          <h1 className="text-4xl font-bold text-center mb-8">
+            🗳️ Zweite Abstimmung
+          </h1>
+          <p className="text-xl text-center mb-8 text-white/80">
+            Wählt gemeinsam eine Person aus (keine Diskussion!)
+          </p>
+
+          <div className="grid grid-cols-2 gap-4 max-h-96 overflow-y-auto mb-6">
+            {dayPlayers
+              .filter(p => p.status === 'alive')
+              .map((player) => (
+                <button
+                  key={player.name}
+                  onClick={() => handleSecondVoting(player.name)}
                   className="py-4 px-6 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition transform hover:scale-105"
                 >
                   {player.name}

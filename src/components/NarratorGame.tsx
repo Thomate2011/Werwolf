@@ -1,3 +1,5 @@
+// src/components/NarratorGame.tsx - MIT CURRENT DAY
+
 import React, { useState } from 'react';
 import { Player, Role } from '../types';
 import NarratorSeatingInfo from './NarratorSeatingInfo';
@@ -26,6 +28,7 @@ const NarratorGame: React.FC<NarratorGameProps> = ({
 }) => {
   const [gamePhase, setGamePhase] = useState<GamePhase>('seating_and_cards');
   const [currentRound, setCurrentRound] = useState(1);
+  const [currentDay, setCurrentDay] = useState(1);
   const [gamePlayers, setGamePlayers] = useState<Player[]>(players);
   const [nightDeaths, setNightDeaths] = useState<string[]>([]);
   const [hunterDeaths, setHunterDeaths] = useState<string[]>([]);
@@ -48,6 +51,7 @@ const NarratorGame: React.FC<NarratorGameProps> = ({
   const handleDayComplete = (updatedPlayers: Player[]) => {
     setGamePlayers(updatedPlayers);
     setCurrentRound(prev => prev + 1);
+    setCurrentDay(prev => prev + 1);
     setGamePhase('night');
   };
 
@@ -82,6 +86,7 @@ const NarratorGame: React.FC<NarratorGameProps> = ({
         players={gamePlayers}
         nightDeaths={nightDeaths}
         hunterDeaths={hunterDeaths}
+        currentDay={currentDay}
         onDayComplete={handleDayComplete}
         onGameEnd={onGameEnd}
         onRestart={onGoToRoleSelection}
