@@ -1,4 +1,4 @@
-// src/components/NarratorNightFlow.tsx - VOLLSTÄNDIG KORRIGIERT & KOMPLETT
+// src/components/NarratorNightFlow.tsx - VOLLSTÄNDIG MIT ALLEN ACTION COMPONENTS
 
 import React, { useState, useEffect } from 'react';
 import { Player, Role } from '../types';
@@ -6,6 +6,8 @@ import { useTranslation } from '../LanguageContext';
 import { audioManager } from '../services/AudioManager';
 import { NightPhaseLogic } from '../services/NightPhaseLogic';
 import { gameStateManager } from '../services/GameStateManager';
+import LanguageSelector from './LanguageSelector';
+import Modal from './Modal';
 
 interface NarratorNightFlowProps {
   players: Player[];
@@ -13,6 +15,8 @@ interface NarratorNightFlowProps {
   thiefExtraRoles: Role[];
   jesterExtraRoles: Role[];
   onNightComplete: (deadPlayers: string[], updatedPlayers: Player[], hunterDeaths: string[]) => void;
+  onRestart: () => void;
+  onGoHome: () => void;
 }
 
 type FlowState = 'playing_audio' | 'pause' | 'show_action' | 'show_continue';
@@ -47,6 +51,8 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
   thiefExtraRoles,
   jesterExtraRoles,
   onNightComplete,
+  onRestart,
+  onGoHome,
 }) => {
   const { t, locale } = useTranslation();
   
@@ -56,6 +62,7 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
   const [currentAudioPhase, setCurrentAudioPhase] = useState<'open' | 'action' | 'close' | 'wake' | 'sleep'>('open');
   const [modifiedPlayers, setModifiedPlayers] = useState<Player[]>(players);
   const [displayText, setDisplayText] = useState<string>('');
+  const [showPauseModal, setShowPauseModal] = useState(false);
   
   const [nightActions, setNightActions] = useState<NightActionState>({
     werewolfTarget: null,
@@ -70,11 +77,35 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
 
   useEffect(() => {
     const sequence = generateRoleSequence(modifiedPlayers, currentRound);
-    console.log('🌙 Nacht-Sequenz Runde', currentRound, ':', sequence);
     setRoleSequence(sequence);
   }, [modifiedPlayers, currentRound]);
 
   const currentRole = roleSequence[currentRoleIndex];
+
+  const handlePauseClick = () => {
+    audioManager.stopAudio();
+    setShowPauseModal(true);
+  };
+
+  const handlePauseContinue = () => {
+    setShowPauseModal(false);
+    if (flowState === 'playing_audio') {
+      setFlowState('pause');
+      setTimeout(() => {
+        setFlowState('playing_audio');
+      }, 100);
+    }
+  };
+
+  const handlePauseRestart = () => {
+    audioManager.stopAudio();
+    onRestart();
+  };
+
+  const handlePauseHome = () => {
+    audioManager.stopAudio();
+    onGoHome();
+  };
 
   useEffect(() => {
     if (flowState !== 'playing_audio' || !currentRole) return;
@@ -118,12 +149,9 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
     }
 
     if (!audioKey) {
-      console.warn('⚠️ Kein Audio-Key für:', currentRole, currentAudioPhase);
       handleAfterAudio();
       return;
     }
-
-    console.log('🔊 Spiele Audio:', audioKey);
 
     audioManager.playAudio(
       locale,
@@ -149,7 +177,7 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
 
     if (currentRole === 'reine_seele') {
       setFlowState('show_continue');
-      setDisplayText('Reine Seele hat sich zu erkennen gegeben.');
+      setDisplayText(t('night_pure_soul_revealed'));
       return;
     }
 
@@ -161,7 +189,7 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
         setFlowState('playing_audio');
       } else if (currentRole === 'urwolf') {
         setFlowState('show_continue');
-        setDisplayText('Infizierung wurde durchgeführt.');
+        setDisplayText(t('night_urwolf_infected'));
       }
     } else if (currentAudioPhase === 'close') {
       if (currentRole === 'amor' || currentRole === 'floetenspieler') {
@@ -176,9 +204,9 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
     } else if (currentAudioPhase === 'wake') {
       setFlowState('show_continue');
       if (currentRole === 'amor') {
-        setDisplayText('Verliebte, schaut euch an, wer euer Partner ist.');
+        setDisplayText(t('night_lovers_look'));
       } else if (currentRole === 'floetenspieler') {
-        setDisplayText('Verzauberte, schaut euch an, wer ebenfalls verzaubert ist.');
+        setDisplayText(t('night_enchanted_look'));
       }
     } else if (currentAudioPhase === 'sleep') {
       setFlowState('pause');
@@ -244,7 +272,7 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
             const updated = NightPhaseLogic.handleOrphanSelect(orphan.name, name, modifiedPlayers);
             setModifiedPlayers(updated);
           }
-          setDisplayText(`Vorbild: ${name} - Rolle: ${role.name}`);
+          setDisplayText(t('night_orphan_model', { name, role: role.name }));
           setTimeout(() => {
             handleActionComplete();
           }, 3000);
@@ -313,10 +341,10 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
         }} />;
 
       case 'die_drei_brueder':
-        return <ActionSiblings text="Schaut euch an, wer eure Geschwister sind." onComplete={handleActionComplete} />;
+        return <ActionSiblings text={t('night_siblings_title')} onComplete={handleActionComplete} />;
 
       case 'die_zwei_schwestern':
-        return <ActionSiblings text="Schaut euch an, wer eure Geschwister sind." onComplete={handleActionComplete} />;
+        return <ActionSiblings text={t('night_siblings_title')} onComplete={handleActionComplete} />;
 
       case 'seherin':
         return <ActionSeer 
@@ -384,9 +412,9 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
             
             setFlowState('show_action');
             if (result.hasWerewolf) {
-              setDisplayText('✅ Einer der Drei ist ein Werwolf!');
+              setDisplayText(t('night_fox_werewolf_found'));
             } else {
-              setDisplayText('❌ Keiner der Drei ist ein Werwolf. Du hast deine Fähigkeit verloren!');
+              setDisplayText(t('night_fox_no_werewolf'));
             }
             
             setTimeout(() => {
@@ -409,32 +437,36 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
         }} />;
 
       default:
-        console.warn('⚠️ Keine Aktion für Rolle:', currentRole);
         return null;
     }
   };
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-indigo-900 via-purple-900 to-blue-900">
-      <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 text-white">
+      <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 text-white relative">
         
-        <div className="mb-6">
-          <div className="flex justify-between text-sm mb-2">
-            <span>Rolle {currentRoleIndex + 1} / {roleSequence.length}</span>
-            <span>Runde {currentRound}</span>
-          </div>
-          <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-green-500 transition-all duration-300"
-              style={{ width: `${((currentRoleIndex + 1) / roleSequence.length) * 100}%` }}
-            ></div>
-          </div>
+        {/* LINKS: Pause-Button */}
+        <div className="absolute top-4 left-4">
+          <button
+            onClick={handlePauseClick}
+            className="p-2 hover:bg-white/20 rounded-full transition"
+            title={t('pause_button')}
+          >
+            <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="4" width="4" height="16" rx="1"/>
+              <rect x="14" y="4" width="4" height="16" rx="1"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* RECHTS: Sprachen-Wechsel */}
+        <div className="absolute top-4 right-4">
+          <LanguageSelector />
         </div>
 
         {flowState === 'playing_audio' && (
-          <div className="text-center space-y-6">
+          <div className="text-center space-y-6 mt-12">
             <div className="text-6xl animate-pulse">🎙️</div>
-            <p className="text-sm text-white/60">Aktuelle Rolle: {currentRole}</p>
             <div className="flex justify-center gap-2">
               <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
               <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
@@ -450,7 +482,7 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
         )}
 
         {flowState === 'show_action' && (
-          <div className="space-y-6">
+          <div className="space-y-6 mt-12">
             {displayText && (
               <div className="bg-blue-600/30 border-2 border-blue-500 rounded-xl p-6 text-center mb-4">
                 <p className="text-2xl font-bold">{displayText}</p>
@@ -461,7 +493,7 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
         )}
 
         {flowState === 'show_continue' && (
-          <div className="text-center space-y-6">
+          <div className="text-center space-y-6 mt-12">
             {displayText && <p className="text-2xl text-white/90">{displayText}</p>}
             <button
               onClick={handleContinueClick}
@@ -472,6 +504,31 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
           </div>
         )}
       </div>
+
+      {showPauseModal && (
+        <Modal title={t('pause_modal_title')} onClose={() => setShowPauseModal(false)} isOpaque={true}>
+          <div className="space-y-4">
+            <button
+              onClick={handlePauseContinue}
+              className="w-full py-3 px-6 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition"
+            >
+              {t('pause_continue')}
+            </button>
+            <button
+              onClick={handlePauseRestart}
+              className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition"
+            >
+              {t('pause_restart')}
+            </button>
+            <button
+              onClick={handlePauseHome}
+              className="w-full py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition"
+            >
+              {t('pause_home')}
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };
@@ -480,14 +537,7 @@ function generateRoleSequence(players: Player[], round: number): string[] {
   const sequence: string[] = [];
   const alive = players.filter(p => p.status === 'alive');
   
-  console.log(`🎮 Generiere Sequenz für Runde ${round}:`);
-  console.log('  Lebende Spieler:', alive.map(p => `${p.name} (${p.originalRole.id})`));
-  
-  const hasRole = (roleId: string) => {
-    const found = alive.some(p => p.originalRole.id === roleId);
-    console.log(`  ✓ hasRole('${roleId}'): ${found}`);
-    return found;
-  };
+  const hasRole = (roleId: string) => alive.some(p => p.originalRole.id === roleId);
 
   if (round === 1 && hasRole('reine_seele')) {
     sequence.push('reine_seele');
@@ -526,13 +576,11 @@ function generateRoleSequence(players: Player[], round: number): string[] {
   if (hasRole('der_fuchs')) sequence.push('der_fuchs');
 
   sequence.push('open_eyes');
-
-  console.log('  📋 Final sequence:', sequence);
   
   return sequence;
 }
-// TEIL 2: ACTION COMPONENTS für NarratorNightFlow.tsx
-// Diese Komponenten NACH generateRoleSequence() einfügen!
+
+// ========== ACTION COMPONENTS ==========
 
 const ActionOrphan: React.FC<{ players: Player[]; onComplete: (name: string, role: Role) => void }> = ({ players, onComplete }) => {
   const { t } = useTranslation();
@@ -550,7 +598,7 @@ const ActionOrphan: React.FC<{ players: Player[]; onComplete: (name: string, rol
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">👶 Wähle ein Vorbild</h2>
+      <h2 className="text-2xl font-bold text-center">{t('night_orphan_title')}</h2>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {available.map((p) => (
           <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
@@ -570,7 +618,7 @@ const ActionThief: React.FC<{ cards: Role[]; onComplete: (card: Role) => void }>
   const [selected, setSelected] = useState<Role | null>(null);
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">🃏 Wähle eine Karte</h2>
+      <h2 className="text-2xl font-bold text-center">{t('night_thief_title')}</h2>
       <div className="grid grid-cols-2 gap-3">
         {cards.map((card) => (
           <button key={card.id} onClick={() => setSelected(card)} className={`py-4 px-4 rounded-xl font-bold transition ${selected?.id === card.id ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
@@ -590,7 +638,7 @@ const ActionJester: React.FC<{ cards: Role[]; onComplete: (card: Role) => void }
   const [selected, setSelected] = useState<Role | null>(null);
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">🎭 Wähle eine Rolle</h2>
+      <h2 className="text-2xl font-bold text-center">{t('night_jester_title')}</h2>
       <div className="grid grid-cols-3 gap-3">
         {cards.map((card) => (
           <button key={card.id} onClick={() => setSelected(card)} className={`py-4 px-3 rounded-xl font-bold transition text-sm ${selected?.id === card.id ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
@@ -618,7 +666,7 @@ const ActionCupid: React.FC<{ players: Player[]; onComplete: (l1: string, l2: st
   };
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">💘 Wähle 2 Verliebte</h2>
+      <h2 className="text-2xl font-bold text-center">{t('night_cupid_title')}</h2>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {alive.map((p) => (
           <button key={p.name} onClick={() => handlePlayerClick(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${lover1 === p.name || lover2 === p.name ? 'bg-pink-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
@@ -639,7 +687,7 @@ const ActionAlphaWolf: React.FC<{ players: Player[]; onComplete: (name: string) 
   const targets = players.filter(p => !['werwolf', 'der_grosse_boese_werwolf', 'der_weisse_werwolf', 'urwolf'].includes(p.role.id) && p.status === 'alive');
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">🌙 Verwandle jemanden</h2>
+      <h2 className="text-2xl font-bold text-center">{t('night_alpha_wolf_title')}</h2>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {targets.map((p) => (
           <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-purple-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
@@ -665,8 +713,8 @@ const ActionPiper: React.FC<{ players: Player[]; alreadyEnchanted: string[]; onC
   };
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">🎵 Wähle 2 Personen</h2>
-      <p className="text-center text-sm">Gewählt: {selected.length} / 2</p>
+      <h2 className="text-2xl font-bold text-center">{t('night_piper_title')}</h2>
+      <p className="text-center text-sm">{t('night_piper_selected', { count: selected.length })}</p>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {available.map((p) => (
           <button key={p.name} onClick={() => togglePlayer(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected.includes(p.name) ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
@@ -694,8 +742,8 @@ const ActionBitterOldMan: React.FC<{ players: Player[]; onComplete: (g1: string[
   const isValid = group1.length === halfCount;
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">👴 Wähle die Hälfte</h2>
-      <p className="text-center text-sm">Gewählt: {group1.length} / {halfCount}</p>
+      <h2 className="text-2xl font-bold text-center">{t('night_bitter_old_man_title')}</h2>
+      <p className="text-center text-sm">{t('night_bitter_old_man_selected', { count: group1.length, total: halfCount })}</p>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {alive.map((p) => (
           <button key={p.name} onClick={() => togglePlayer(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${group1.includes(p.name) ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
@@ -711,15 +759,16 @@ const ActionBitterOldMan: React.FC<{ players: Player[]; onComplete: (g1: string[
 };
 
 const ActionWolfhound: React.FC<{ onComplete: (choice: 'dorfbewohner' | 'werwolf') => void }> = ({ onComplete }) => {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">🐺 Wähle deine Seite</h2>
+      <h2 className="text-2xl font-bold text-center">{t('night_wolfhound_title')}</h2>
       <div className="grid grid-cols-2 gap-4">
         <button onClick={() => onComplete('dorfbewohner')} className="py-6 px-4 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-lg">
-          👨‍🌾 Dorfbewohner
+          {t('night_wolfhound_villager')}
         </button>
         <button onClick={() => onComplete('werwolf')} className="py-6 px-4 bg-red-600 hover:bg-red-700 rounded-xl font-bold text-lg">
-          🐺 Werwolf
+          {t('night_wolfhound_werewolf')}
         </button>
       </div>
     </div>
@@ -733,7 +782,7 @@ const ActionWildChild: React.FC<{ players: Player[]; onComplete: (name: string) 
   const available = players.filter(p => p.status === 'alive' && p.name !== wildChild?.name);
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">🌲 Wähle dein Vorbild</h2>
+      <h2 className="text-2xl font-bold text-center">{t('night_wild_child_title')}</h2>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {available.map((p) => (
           <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
@@ -770,7 +819,7 @@ const ActionSeer: React.FC<{ players: Player[]; alreadyChecked: string[]; onComp
   const selectedPlayer = players.find(p => p.name === selected);
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">🔮 Wähle eine Person</h2>
+      <h2 className="text-2xl font-bold text-center">{t('night_seer_title')}</h2>
       {!revealed ? (
         <>
           <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
@@ -784,7 +833,7 @@ const ActionSeer: React.FC<{ players: Player[]; alreadyChecked: string[]; onComp
             })}
           </div>
           <button onClick={() => setRevealed(true)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-600 cursor-not-allowed'}`}>
-            Rolle aufdecken
+            {t('night_seer_reveal')}
           </button>
         </>
       ) : (
@@ -808,7 +857,7 @@ const ActionHealer: React.FC<{ players: Player[]; onComplete: (name: string) => 
   const alive = players.filter(p => p.status === 'alive');
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">🩺 Wähle jemanden</h2>
+      <h2 className="text-2xl font-bold text-center">{t('night_healer_title')}</h2>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {alive.map((p) => (
           <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
@@ -829,7 +878,7 @@ const ActionWerewolves: React.FC<{ players: Player[]; onComplete: (name: string)
   const targets = players.filter(p => !['werwolf', 'der_grosse_boese_werwolf', 'der_weisse_werwolf', 'urwolf'].includes(p.role.id) && p.status === 'alive');
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">🐺 Wähle ein Opfer</h2>
+      <h2 className="text-2xl font-bold text-center">{t('night_werewolves_title')}</h2>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {targets.map((p) => (
           <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-red-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
@@ -860,20 +909,20 @@ const ActionWitch: React.FC<{ players: Player[]; victimName: string | null; heal
   };
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">🧪 Hexe</h2>
+      <h2 className="text-2xl font-bold text-center">{t('night_witch_title')}</h2>
       {victimName && (
         <div className="bg-red-600/30 border-2 border-red-500 rounded-xl p-4 text-center">
-          <p className="text-sm">Opfer der Werwölfe:</p>
+          <p className="text-sm">{t('night_witch_victim')}</p>
           <p className="text-xl font-bold">💀 {victimName}</p>
         </div>
       )}
       <div className="space-y-3">
         <button onClick={handleHealClick} disabled={healPotionUsed || !victimName} className={`w-full py-4 rounded-xl font-bold transition ${healed ? 'bg-green-600 text-white' : healPotionUsed || !victimName ? 'bg-gray-600 cursor-not-allowed text-white/50' : 'bg-green-500 hover:bg-green-600'}`}>
-          {healed ? '✅ Geheilt' : healPotionUsed ? '❌ Heiltrank verbraucht' : '💚 Heilen'}
+          {healed ? `✅ ${t('night_witch_healed')}` : healPotionUsed ? `❌ ${t('night_witch_heal_used')}` : `💚 ${t('night_witch_heal')}`}
         </button>
-        <p className="text-center font-bold">☠️ Vergiften</p>
+        <p className="text-center font-bold">☠️ {t('night_witch_poison')}</p>
         {poisonPotionUsed ? (
-          <p className="text-center text-white/60">❌ Gifttrank verbraucht</p>
+          <p className="text-center text-white/60">❌ {t('night_witch_poison_used')}</p>
         ) : (
           <div className="grid grid-cols-2 gap-3 max-h-60 overflow-y-auto">
             {alive.map((p) => (
@@ -898,7 +947,7 @@ const ActionHomeless: React.FC<{ players: Player[]; onComplete: (name: string) =
   const available = players.filter(p => p.status === 'alive' && p.name !== homeless?.name);
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">🏚️ Wo übernachtest du?</h2>
+      <h2 className="text-2xl font-bold text-center">{t('night_homeless_title')}</h2>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {available.map((p) => (
           <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
@@ -919,7 +968,7 @@ const ActionFox: React.FC<{ players: Player[]; alreadyChecked: string[]; onCompl
   const alive = players.filter(p => p.status === 'alive');
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">🦊 Wähle eine Person</h2>
+      <h2 className="text-2xl font-bold text-center">{t('night_fox_title')}</h2>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {alive.map((p) => {
           const wasChecked = alreadyChecked.includes(p.name);
@@ -943,7 +992,7 @@ const ActionBigBadWolf: React.FC<{ players: Player[]; onComplete: (name: string)
   const targets = players.filter(p => !['werwolf', 'der_grosse_boese_werwolf', 'der_weisse_werwolf', 'urwolf'].includes(p.role.id) && p.status === 'alive');
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">🐺💀 2. Opfer</h2>
+      <h2 className="text-2xl font-bold text-center">{t('night_big_bad_wolf_title')}</h2>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {targets.map((p) => (
           <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-red-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
@@ -958,9 +1007,6 @@ const ActionBigBadWolf: React.FC<{ players: Player[]; onComplete: (name: string)
   );
 };
 
-// TEIL 3: Weißer Wolf + Export
-// Diese Action-Komponente vervollständigt die Datei!
-
 const ActionWhiteWolf: React.FC<{ players: Player[]; onComplete: (name: string) => void }> = ({ players, onComplete }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string | null>(null);
@@ -968,7 +1014,7 @@ const ActionWhiteWolf: React.FC<{ players: Player[]; onComplete: (name: string) 
   
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">⚪🐺 Töte einen Werwolf</h2>
+      <h2 className="text-2xl font-bold text-center">{t('night_white_wolf_title')}</h2>
       <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
         {werewolves.map((p) => (
           <button 

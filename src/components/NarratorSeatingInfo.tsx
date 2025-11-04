@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Player, Role } from '../types';
 import { useTranslation } from '../LanguageContext';
 import { ROLES_CONFIG } from '../constants';
+import LanguageSelector from './LanguageSelector';
 
 interface NarratorSeatingInfoProps {
   players: Player[];
@@ -43,7 +44,6 @@ const NarratorSeatingInfo: React.FC<NarratorSeatingInfoProps> = ({ players, onCo
       setIsRevealed(false);
       setShowDescription(false);
     } else {
-      // Letzter Spieler -> Spiel starten
       onComplete();
     }
   };
@@ -51,7 +51,13 @@ const NarratorSeatingInfo: React.FC<NarratorSeatingInfoProps> = ({ players, onCo
   if (showInfo) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-        <div className="w-full max-w-2xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
+        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white relative">
+          
+          {/* RECHTS: Sprachen-Wechsel */}
+          <div className="absolute top-6 right-6">
+            <LanguageSelector />
+          </div>
+
           <h1 className="text-4xl font-bold text-center mb-8">{t('narrator_seating_info_title')}</h1>
           <p className="text-center mb-8 text-xl text-white/80">
             {t('narrator_seating_info_message')}
@@ -69,8 +75,14 @@ const NarratorSeatingInfo: React.FC<NarratorSeatingInfoProps> = ({ players, onCo
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-      <div className="w-full max-w-2xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
-        <h1 className="text-3xl font-bold mb-8 text-center">{t('card_reveal_title')}</h1>
+      <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white relative">
+        
+        {/* RECHTS: Sprachen-Wechsel */}
+        <div className="absolute top-6 right-6">
+          <LanguageSelector />
+        </div>
+
+        <h1 className="text-4xl font-bold mb-8 text-center">{t('card_reveal_title')}</h1>
 
         <div className="w-full border-2 border-blue-400 border-dashed rounded-lg p-8 flex flex-col justify-center items-center text-center min-h-[250px]">
           

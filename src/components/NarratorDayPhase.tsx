@@ -1,10 +1,12 @@
-// src/components/NarratorDayPhase.tsx - MIT RICHTER AM TAG 1
+// src/components/NarratorDayPhase.tsx - VOLLSTÄNDIG
 
 import React, { useState, useEffect } from 'react';
 import { Player } from '../types';
 import { useTranslation } from '../LanguageContext';
 import { gameStateManager } from '../services/GameStateManager';
 import { audioManager } from '../services/AudioManager';
+import LanguageSelector from './LanguageSelector';
+import Modal from './Modal';
 
 interface NarratorDayPhaseProps {
   players: Player[];
@@ -52,12 +54,38 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
   const [bearGrowled, setBearGrowled] = useState(false);
   const [firstVotedPlayer, setFirstVotedPlayer] = useState<string | null>(null);
   const [judgeWantsSecondVote, setJudgeWantsSecondVote] = useState(false);
+  const [showPauseModal, setShowPauseModal] = useState(false);
 
-  // Bärenführer Check beim Mount
   useEffect(() => {
     const shouldGrowl = gameStateManager.checkBearAlert(dayPlayers);
     setBearGrowled(shouldGrowl);
   }, []);
+
+  const handlePauseClick = () => {
+    audioManager.stopAudio();
+    setShowPauseModal(true);
+  };
+
+  const handlePauseContinue = () => {
+    setShowPauseModal(false);
+    if (phase === 'judge_close_eyes' || phase === 'judge_audio' || phase === 'judge_eyes_close' || phase === 'judge_eyes_open') {
+      const tempPhase = phase;
+      setPhase('show_deaths');
+      setTimeout(() => {
+        setPhase(tempPhase);
+      }, 100);
+    }
+  };
+
+  const handlePauseRestart = () => {
+    audioManager.stopAudio();
+    onRestart();
+  };
+
+  const handlePauseHome = () => {
+    audioManager.stopAudio();
+    onGoHome();
+  };
 
   const checkWinCondition = (currentPlayers: Player[]): string | null => {
     const alivePlayers = currentPlayers.filter(p => p.status === 'alive');
@@ -96,7 +124,6 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
     return null;
   };
 
-  // ============ TOD-ANZEIGE ============
   const handleShowDeaths = () => {
     const maid = dayPlayers.find(p => 
       p.originalRole.id === 'ergebene_magd' && 
@@ -118,7 +145,6 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
     }
   };
 
-  // ============ ERGEBENE MAGD ============
   const handleMaidAction = (takeOver: boolean, deadPlayerName?: string) => {
     let newPlayers = [...dayPlayers];
     
@@ -150,7 +176,6 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
     }
   };
 
-  // ============ JÄGER-SCHUSS ============
   const handleHunterShoot = (targetName: string) => {
     const newDeaths = [...dayDeaths, targetName];
     setDayDeaths(newDeaths);
@@ -191,7 +216,6 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
     }
   };
 
-  // ============ ERSTE ABSTIMMUNG ============
   const handleVoting = (selectedName: string) => {
     const votedPlayer = dayPlayers.find(p => p.name === selectedName);
     if (!votedPlayer) return;
@@ -230,13 +254,12 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
     setFirstVotedPlayer(selectedName);
 
     const winnerCheck = checkWinCondition(newPlayers);
-  if (winnerCheck) {
-    setWinner(winnerCheck);
-    setPhase('win_screen');
-    return; 
-  }
+    if (winnerCheck) {
+      setWinner(winnerCheck);
+      setPhase('win_screen');
+      return; 
+    }
 
-    // Richter nur am Tag 1 UND wenn er noch lebt
     const judgeAlive = newPlayers.find(p => 
       p.originalRole.id === 'der_stotternde_richter' && 
       p.status === 'alive'
@@ -258,7 +281,6 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
     }
   };
 
-  // ============ RICHTER AUDIO SEQUENZ ============
   useEffect(() => {
     if (phase === 'judge_close_eyes') {
       audioManager.playAudio(
@@ -322,7 +344,6 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
     if (judgeWantsSecondVote) {
       setPhase('second_voting');
     } else {
-      // Prüfe ob Jäger gestorben ist
       const firstVoted = dayPlayers.find(p => p.name === firstVotedPlayer);
       if (firstVoted?.originalRole.id === 'jaeger') {
         setPhase('hunter_action');
@@ -339,7 +360,6 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
     }
   };
 
-  // ============ ZWEITE ABSTIMMUNG ============
   const handleSecondVoting = (selectedName: string) => {
     const votedPlayer = dayPlayers.find(p => p.name === selectedName);
     if (!votedPlayer) return;
@@ -390,7 +410,6 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
     }
   };
 
-  // ============ SÜNDENBOCK STIRBT ============
   const handleScapegoatDeath = () => {
     const scapegoat = dayPlayers.find(p => 
       p.originalRole.id === 'suendenbock' && 
@@ -429,7 +448,6 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
     }
   };
 
-  // ============ TAG-TOTE ANZEIGEN ============
   const handleShowDayDeaths = () => {
     const winnerCheck = checkWinCondition(dayPlayers);
     if (winnerCheck) {
@@ -440,7 +458,6 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
     }
   };
 
-  // ============ GEWINN-SCREEN ============
   const getWinnerText = (): string => {
     switch (winner) {
       case 'villagers': return t('narrator_game_end_villagers_win');
@@ -462,9 +479,29 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
   if (phase === 'win_screen') {
     return (
       <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-yellow-600 via-orange-600 to-red-600">
-        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
-          <div className="text-center space-y-8">
-            <div className="text-8xl">🎉</div>
+        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white relative">
+          
+          {/* LINKS: Pause-Button */}
+          <div className="absolute top-4 left-4">
+            <button
+              onClick={handlePauseClick}
+              className="p-2 hover:bg-white/20 rounded-full transition"
+              title={t('pause_button')}
+            >
+              <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="4" width="4" height="16" rx="1"/>
+                <rect x="14" y="4" width="4" height="16" rx="1"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* RECHTS: Sprachen-Wechsel */}
+          <div className="absolute top-4 right-4">
+            <LanguageSelector />
+          </div>
+
+          <div className="text-center space-y-8 mt-8">
+            <div className="text-8xl">{t('win_screen_emoji')}</div>
             <h1 className="text-5xl font-bold">{getWinnerText()}</h1>
             
             <div className="grid grid-cols-2 gap-6 mt-12">
@@ -475,7 +512,7 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
                 >
                   {t('restart')}
                 </button>
-                <p className="text-sm text-white/70 mt-3">Zur Rollenauswahl</p>
+                <p className="text-sm text-white/70 mt-3">{t('win_screen_restart_info')}</p>
               </div>
               
               <div className="text-center">
@@ -485,357 +522,382 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
                 >
                   {t('to_homepage')}
                 </button>
-                <p className="text-sm text-white/70 mt-3">Kompletter Reset</p>
+                <p className="text-sm text-white/70 mt-3">{t('win_screen_home_info')}</p>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    );
-  }
 
-  if (phase === 'show_deaths') {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-orange-900 via-red-900 to-pink-900">
-        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
-          {bearGrowled && (
-            <div className="mb-6 text-center">
-              <div className="text-6xl mb-4">🐻💢</div>
-              <p className="text-2xl font-bold text-yellow-400">GRRRR! Der Bär knurrt!</p>
-            </div>
-          )}
-          
-          <h1 className="text-4xl font-bold text-center mb-8">
-            🌅 {t('narrator_day_deaths_title')}
-          </h1>
-
-          {nightDeaths.length === 0 ? (
-            <div className="text-center space-y-6">
-              <p className="text-3xl">🌙✨</p>
-              <p className="text-2xl text-white/80">{t('narrator_day_no_deaths')}</p>
-            </div>
-          ) : (
-            <div className="space-y-4 mb-8">
-              {nightDeaths.map((name) => (
-                <div
-                  key={name}
-                  className="bg-red-600/30 border-2 border-red-500 rounded-xl p-6 text-center transform hover:scale-105 transition"
-                >
-                  <p className="text-3xl font-bold">💀 {name}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <button
-            onClick={handleShowDeaths}
-            className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
-          >
-            {t('next')}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (phase === 'maid_action') {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-purple-900 via-pink-900 to-red-900">
-        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
-          <h1 className="text-4xl font-bold text-center mb-8">
-            👩🏼 {t('narrator_day_maid_button')}
-          </h1>
-          <p className="text-xl text-center mb-8 text-white/80">
-            {t('narrator_day_maid_choice')}
-          </p>
-
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            {nightDeaths.map((deadName) => (
+        {showPauseModal && (
+          <Modal title={t('pause_modal_title')} onClose={() => setShowPauseModal(false)} isOpaque={true}>
+            <div className="space-y-4">
               <button
-                key={deadName}
-                onClick={() => handleMaidAction(true, deadName)}
-                className="py-4 px-6 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition"
+                onClick={handlePauseContinue}
+                className="w-full py-3 px-6 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition"
               >
-                {deadName}
+                {t('pause_continue')}
               </button>
-            ))}
-          </div>
+              <button
+                onClick={handlePauseRestart}
+                className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition"
+              >
+                {t('pause_restart')}
+              </button>
+              <button
+                onClick={handlePauseHome}
+                className="w-full py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition"
+              >
+                {t('pause_home')}
+              </button>
+            </div>
+          </Modal>
+        )}
+      </div>
+    );
+  }
 
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-orange-900 via-red-900 to-pink-900">
+      <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white relative">
+        
+        {/* LINKS: Pause-Button */}
+        <div className="absolute top-4 left-4">
           <button
-            onClick={() => handleMaidAction(false)}
-            className="w-full py-3 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-xl transition"
+            onClick={handlePauseClick}
+            className="p-2 hover:bg-white/20 rounded-full transition"
+            title={t('pause_button')}
           >
-            Nichts tun
+            <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="4" width="4" height="16" rx="1"/>
+              <rect x="14" y="4" width="4" height="16" rx="1"/>
+            </svg>
           </button>
         </div>
-      </div>
-    );
-  }
 
-  if (phase === 'hunter_action') {
-    const currentHunterName = hunterDeaths[currentHunterIndex];
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-gray-900 via-red-900 to-orange-900">
-        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
-          <h1 className="text-4xl font-bold text-center mb-8">
-            🏹 {t('narrator_day_hunter_shoots')}
-          </h1>
-          <div className="bg-red-600/30 border-2 border-red-500 rounded-xl p-6 text-center mb-8">
-            <p className="text-3xl font-bold">{currentHunterName}</p>
-          </div>
-          <p className="text-xl text-center mb-8 text-white/80">
-            Wähle ein Ziel für deinen letzten Schuss
-          </p>
-
-          <div className="grid grid-cols-2 gap-4">
-            {dayPlayers
-              .filter(p => p.status === 'alive')
-              .map((player) => (
-                <button
-                  key={player.name}
-                  onClick={() => handleHunterShoot(player.name)}
-                  className="py-4 px-6 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition transform hover:scale-105"
-                >
-                  {player.name}
-                </button>
-              ))}
-          </div>
+        {/* RECHTS: Sprachen-Wechsel */}
+        <div className="absolute top-4 right-4">
+          <LanguageSelector />
         </div>
-      </div>
-    );
-  }
 
-  if (phase === 'discussion') {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900">
-        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
-          <h1 className="text-4xl font-bold text-center mb-8">
-            💬 {t('narrator_day_discussion')}
-          </h1>
-          <p className="text-xl text-center mb-8 text-white/80">
-            Diskutiert jetzt, wer der Werwolf sein könnte
-          </p>
-          <div className="text-center text-6xl mb-8">🗣️</div>
-          <button
-            onClick={() => setPhase('voting')}
-            className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
-          >
-            {t('narrator_day_voting')}
-          </button>
-        </div>
-      </div>
-    );
-  }
+        {phase === 'show_deaths' && (
+          <div className="mt-8">
+            {bearGrowled && (
+              <div className="mb-6 text-center">
+                <div className="text-6xl mb-4">🐻💢</div>
+                <p className="text-2xl font-bold text-yellow-400">{t('day_bear_growl')}</p>
+              </div>
+            )}
+            
+            <h1 className="text-4xl font-bold text-center mb-8">
+              🌅 {t('day_deaths_title')}
+            </h1>
 
-  if (phase === 'voting') {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-yellow-900 via-orange-900 to-red-900">
-        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
-          <h1 className="text-4xl font-bold text-center mb-8">
-            🗳️ Erste Abstimmung
-          </h1>
-          <p className="text-xl text-center mb-8 text-white/80">
-            Wählt gemeinsam eine Person aus
-          </p>
-
-          <div className="grid grid-cols-2 gap-4 max-h-96 overflow-y-auto mb-6">
-            {dayPlayers
-              .filter(p => p.status === 'alive')
-              .map((player) => (
-                <button
-                  key={player.name}
-                  onClick={() => handleVoting(player.name)}
-                  className="py-4 px-6 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition transform hover:scale-105"
-                >
-                  {player.name}
-                </button>
-              ))}
-          </div>
-
-          {scapegoatAlive && (
-            <button
-              onClick={handleScapegoatDeath}
-              className="w-full py-4 px-8 bg-yellow-600 hover:bg-yellow-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
-            >
-              🐐 Gleichstand - Sündenbock stirbt
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  if (phase === 'judge_close_eyes' || phase === 'judge_audio') {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-indigo-900 via-purple-900 to-blue-900">
-        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
-          <div className="text-center space-y-6">
-            <div className="text-6xl animate-pulse">🎙️</div>
-            <div className="flex justify-center gap-2">
-              <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-              <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-              <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (phase === 'judge_decision') {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-indigo-900 via-purple-900 to-blue-900">
-        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
-          <h1 className="text-4xl font-bold text-center mb-8">
-            ⚖️ Stotternder Richter
-          </h1>
-          <p className="text-2xl text-center mb-12 text-white/90">
-            Soll eine zweite Abstimmung stattfinden?
-          </p>
-
-          <div className="grid grid-cols-2 gap-6">
-            <button
-              onClick={() => handleJudgeDecision(true)}
-              className="py-8 px-6 bg-green-600 hover:bg-green-700 text-white font-bold text-2xl rounded-xl transition transform hover:scale-105"
-            >
-              ✅ Ja
-            </button>
-            <button
-              onClick={() => handleJudgeDecision(false)}
-              className="py-8 px-6 bg-red-600 hover:bg-red-700 text-white font-bold text-2xl rounded-xl transition transform hover:scale-105"
-            >
-              ❌ Nein
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (phase === 'judge_eyes_close' || phase === 'judge_eyes_open') {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-indigo-900 via-purple-900 to-blue-900">
-        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
-          <div className="text-center space-y-6">
-            <div className="text-6xl animate-pulse">🎙️</div>
-            <div className="flex justify-center gap-2">
-              <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-              <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-              <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (phase === 'judge_announcement') {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-indigo-900 via-purple-900 to-blue-900">
-        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
-          <h1 className="text-4xl font-bold text-center mb-8">
-            ⚖️ Richter Entscheidung
-          </h1>
-          <div className="bg-blue-600/30 border-2 border-blue-500 rounded-xl p-8 text-center mb-8">
-            {judgeWantsSecondVote ? (
-              <>
-                <div className="text-6xl mb-4">✅</div>
-                <p className="text-2xl font-bold">Der Richter hat eine zweite Abstimmung angeordnet!</p>
-              </>
+            {nightDeaths.length === 0 ? (
+              <div className="text-center space-y-6">
+                <p className="text-3xl">🌙✨</p>
+                <p className="text-2xl text-white/80">{t('day_no_deaths')}</p>
+              </div>
             ) : (
-              <>
-                <div className="text-6xl mb-4">❌</div>
-                <p className="text-2xl font-bold">Es gibt keine zweite Abstimmung.</p>
-              </>
+              <div className="space-y-4 mb-8">
+                {nightDeaths.map((name) => (
+                  <div
+                    key={name}
+                    className="bg-red-600/30 border-2 border-red-500 rounded-xl p-6 text-center transform hover:scale-105 transition"
+                  >
+                    <p className="text-3xl font-bold">💀 {name}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={handleShowDeaths}
+              className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
+            >
+              {t('next')}
+            </button>
+          </div>
+        )}
+
+        {phase === 'maid_action' && (
+          <div className="mt-8">
+            <h1 className="text-4xl font-bold text-center mb-8">
+              👩🏼 {t('day_maid_choice_title')}
+            </h1>
+            <p className="text-xl text-center mb-8 text-white/80">
+              {t('day_maid_choice_desc')}
+            </p>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              {nightDeaths.map((deadName) => (
+                <button
+                  key={deadName}
+                  onClick={() => handleMaidAction(true, deadName)}
+                  className="py-4 px-6 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition"
+                >
+                  {deadName}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => handleMaidAction(false)}
+              className="w-full py-3 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-xl transition"
+            >
+              {t('day_maid_nothing')}
+            </button>
+          </div>
+        )}
+
+        {phase === 'hunter_action' && (
+          <div className="mt-8">
+            <h1 className="text-4xl font-bold text-center mb-8">
+              🏹 {t('day_hunter_shoots_title')}
+            </h1>
+            <div className="bg-red-600/30 border-2 border-red-500 rounded-xl p-6 text-center mb-8">
+              <p className="text-3xl font-bold">{hunterDeaths[currentHunterIndex]}</p>
+            </div>
+            <p className="text-xl text-center mb-8 text-white/80">
+              {t('day_hunter_choose_target')}
+            </p>
+
+            <div className="grid grid-cols-2 gap-4">
+              {dayPlayers
+                .filter(p => p.status === 'alive')
+                .map((player) => (
+                  <button
+                    key={player.name}
+                    onClick={() => handleHunterShoot(player.name)}
+                    className="py-4 px-6 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition transform hover:scale-105"
+                  >
+                    {player.name}
+                  </button>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {phase === 'discussion' && (
+          <div className="mt-8">
+            <h1 className="text-4xl font-bold text-center mb-8">
+              💬 {t('day_discussion_title')}
+            </h1>
+            <p className="text-xl text-center mb-8 text-white/80">
+              {t('day_discussion_desc')}
+            </p>
+            <div className="text-center text-6xl mb-8">🗣️</div>
+            <button
+              onClick={() => setPhase('voting')}
+              className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
+            >
+              {t('day_voting_title')}
+            </button>
+          </div>
+        )}
+
+        {phase === 'voting' && (
+          <div className="mt-8">
+            <h1 className="text-4xl font-bold text-center mb-8">
+              🗳️ {t('day_voting_title')}
+            </h1>
+            <p className="text-xl text-center mb-8 text-white/80">
+              {t('day_voting_desc')}
+            </p>
+
+            <div className="grid grid-cols-2 gap-4 max-h-96 overflow-y-auto mb-6">
+              {dayPlayers
+                .filter(p => p.status === 'alive')
+                .map((player) => (
+                  <button
+                    key={player.name}
+                    onClick={() => handleVoting(player.name)}
+                    className="py-4 px-6 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition transform hover:scale-105"
+                  >
+                    {player.name}
+                  </button>
+                ))}
+            </div>
+
+            {scapegoatAlive && (
+              <button
+                onClick={handleScapegoatDeath}
+                className="w-full py-4 px-8 bg-yellow-600 hover:bg-yellow-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
+              >
+                🐐 {t('day_voting_scapegoat')}
+              </button>
             )}
           </div>
-          <button
-            onClick={handleJudgeAnnouncement}
-            className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
-          >
-            {t('next')}
-          </button>
-        </div>
-      </div>
-    );
-  }
+        )}
 
-  if (phase === 'second_voting') {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-yellow-900 via-orange-900 to-red-900">
-        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
-          <h1 className="text-4xl font-bold text-center mb-8">
-            🗳️ Zweite Abstimmung
-          </h1>
-          <p className="text-xl text-center mb-8 text-white/80">
-            Wählt gemeinsam eine Person aus (keine Diskussion!)
-          </p>
-
-          <div className="grid grid-cols-2 gap-4 max-h-96 overflow-y-auto mb-6">
-            {dayPlayers
-              .filter(p => p.status === 'alive')
-              .map((player) => (
-                <button
-                  key={player.name}
-                  onClick={() => handleSecondVoting(player.name)}
-                  className="py-4 px-6 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition transform hover:scale-105"
-                >
-                  {player.name}
-                </button>
-              ))}
+        {(phase === 'judge_close_eyes' || phase === 'judge_audio') && (
+          <div className="text-center space-y-6 mt-12">
+            <div className="text-6xl animate-pulse">🎙️</div>
+            <div className="flex justify-center gap-2">
+              <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
           </div>
+        )}
 
-          {scapegoatAlive && (
+        {phase === 'judge_decision' && (
+          <div className="mt-8">
+            <h1 className="text-4xl font-bold text-center mb-8">
+              ⚖️ {t('day_judge_decision_title')}
+            </h1>
+            <p className="text-2xl text-center mb-12 text-white/90">
+              {t('day_judge_decision_desc')}
+            </p>
+
+            <div className="grid grid-cols-2 gap-6">
+              <button
+                onClick={() => handleJudgeDecision(true)}
+                className="py-8 px-6 bg-green-600 hover:bg-green-700 text-white font-bold text-2xl rounded-xl transition transform hover:scale-105"
+              >
+                ✅ {t('day_judge_yes')}
+              </button>
+              <button
+                onClick={() => handleJudgeDecision(false)}
+                className="py-8 px-6 bg-red-600 hover:bg-red-700 text-white font-bold text-2xl rounded-xl transition transform hover:scale-105"
+              >
+                ❌ {t('day_judge_no')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {(phase === 'judge_eyes_close' || phase === 'judge_eyes_open') && (
+          <div className="text-center space-y-6 mt-12">
+            <div className="text-6xl animate-pulse">🎙️</div>
+            <div className="flex justify-center gap-2">
+              <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
+          </div>
+        )}
+
+        {phase === 'judge_announcement' && (
+          <div className="mt-8">
+            <h1 className="text-4xl font-bold text-center mb-8">
+              ⚖️ {t('day_judge_decision_title')}
+            </h1>
+            <div className="bg-blue-600/30 border-2 border-blue-500 rounded-xl p-8 text-center mb-8">
+              {judgeWantsSecondVote ? (
+                <>
+                  <div className="text-6xl mb-4">✅</div>
+                  <p className="text-2xl font-bold">{t('day_judge_second_vote_yes')}</p>
+                </>
+              ) : (
+                <>
+                  <div className="text-6xl mb-4">❌</div>
+                  <p className="text-2xl font-bold">{t('day_judge_second_vote_no')}</p>
+                </>
+              )}
+            </div>
             <button
-              onClick={handleScapegoatDeath}
-              className="w-full py-4 px-8 bg-yellow-600 hover:bg-yellow-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
+              onClick={handleJudgeAnnouncement}
+              className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
             >
-              🐐 Gleichstand - Sündenbock stirbt
+              {t('next')}
             </button>
-          )}
-        </div>
-      </div>
-    );
-  }
+          </div>
+        )}
 
-  if (phase === 'show_day_deaths') {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-gray-900 via-red-900 to-black">
-        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white">
-          <h1 className="text-4xl font-bold text-center mb-8">
-            ⚰️ Tote des Tages
-          </h1>
+        {phase === 'second_voting' && (
+          <div className="mt-8">
+            <h1 className="text-4xl font-bold text-center mb-8">
+              🗳️ {t('day_second_voting_title')}
+            </h1>
+            <p className="text-xl text-center mb-8 text-white/80">
+              {t('day_second_voting_desc')}
+            </p>
 
-          {dayDeaths.length === 0 ? (
-            <div className="text-center space-y-6">
-              <p className="text-3xl">✨</p>
-              <p className="text-2xl text-white/80">Niemand ist am Tag gestorben</p>
+            <div className="grid grid-cols-2 gap-4 max-h-96 overflow-y-auto mb-6">
+              {dayPlayers
+                .filter(p => p.status === 'alive')
+                .map((player) => (
+                  <button
+                    key={player.name}
+                    onClick={() => handleSecondVoting(player.name)}
+                    className="py-4 px-6 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition transform hover:scale-105"
+                  >
+                    {player.name}
+                  </button>
+                ))}
             </div>
-          ) : (
-            <div className="space-y-4 mb-8">
-              {dayDeaths.map((name) => (
-                <div
-                  key={name}
-                  className="bg-red-600/30 border-2 border-red-500 rounded-xl p-6 text-center transform hover:scale-105 transition"
-                >
-                  <p className="text-3xl font-bold">💀 {name}</p>
-                </div>
-              ))}
-            </div>
-          )}
 
-          <button
-            onClick={handleShowDayDeaths}
-            className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
-          >
-            {t('next')}
-          </button>
-        </div>
+            {scapegoatAlive && (
+              <button
+                onClick={handleScapegoatDeath}
+                className="w-full py-4 px-8 bg-yellow-600 hover:bg-yellow-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
+              >
+                🐐 {t('day_voting_scapegoat')}
+              </button>
+            )}
+          </div>
+        )}
+
+        {phase === 'show_day_deaths' && (
+          <div className="mt-8">
+            <h1 className="text-4xl font-bold text-center mb-8">
+              ⚰️ {t('day_deaths_of_day_title')}
+            </h1>
+
+            {dayDeaths.length === 0 ? (
+              <div className="text-center space-y-6">
+                <p className="text-3xl">✨</p>
+                <p className="text-2xl text-white/80">{t('day_deaths_of_day_none')}</p>
+              </div>
+            ) : (
+              <div className="space-y-4 mb-8">
+                {dayDeaths.map((name) => (
+                  <div
+                    key={name}
+                    className="bg-red-600/30 border-2 border-red-500 rounded-xl p-6 text-center transform hover:scale-105 transition"
+                  >
+                    <p className="text-3xl font-bold">💀 {name}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={handleShowDayDeaths}
+              className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
+            >
+              {t('next')}
+            </button>
+          </div>
+        )}
       </div>
-    );
-  }
 
-  return null;
+      {showPauseModal && (
+        <Modal title={t('pause_modal_title')} onClose={() => setShowPauseModal(false)} isOpaque={true}>
+          <div className="space-y-4">
+            <button
+              onClick={handlePauseContinue}
+              className="w-full py-3 px-6 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition"
+            >
+              {t('pause_continue')}
+            </button>
+            <button
+              onClick={handlePauseRestart}
+              className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition"
+            >
+              {t('pause_restart')}
+            </button>
+            <button
+              onClick={handlePauseHome}
+              className="w-full py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition"
+            >
+              {t('pause_home')}
+            </button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
 };
 
 export default NarratorDayPhase;

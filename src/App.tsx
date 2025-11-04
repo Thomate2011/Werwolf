@@ -1,4 +1,4 @@
-// src/App.tsx - KOMPLETT KORRIGIERT
+// src/App.tsx - MIT NEUSTART FIX
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { Page, Player, Role } from './types';
@@ -95,10 +95,22 @@ const App: React.FC = () => {
     [players]
   );
 
+  // NEUSTART - Zur Rollenauswahl (Spieler behalten!)
   const handleGoToRoleSelection = useCallback(() => {
+    // Reset nur Spielstatus, NICHT Spieler!
+    setAssignedRoles([]);
+    setThiefExtraRoles([]);
+    setJesterExtraRoles([]);
+    setLovers([]);
+    setUrwolfHasUsedAbility(false);
+    setOrphanHasUsedAbility(false);
+    setNarratorMode(false);
+    setShowNarratorSelector(false);
+    setGameWinner(null);
     setCurrentPage('role-selection');
   }, []);
 
+  // KOMPLETTER RESET - Zur Startseite
   const handleGoHome = useCallback(() => {
     setPlayers([]);
     setAssignedRoles([]);
@@ -126,7 +138,6 @@ const App: React.FC = () => {
 
   const handleGameEnd = useCallback((winner: string) => {
     setGameWinner(winner);
-    // Zeige Gewinn-Screen
     setTimeout(() => {
       alert(`🎉 ${getWinnerText(winner)} haben gewonnen!`);
       handleGoHome();

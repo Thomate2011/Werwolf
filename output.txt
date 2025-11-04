@@ -1,8 +1,3 @@
-import os
-import re
-from deep_translator import GoogleTranslator
-
-texts = {
     "home_welcome": "Willkommen bei dem Werwolf-Spiel von Thomas.",
     "home_description": "Hier kannst du einfach die Rollen für dein Werwolf-Spiel verteilen und sie dir erklären lassen.",
     "start_game": "Zum Spiel",
@@ -22,7 +17,7 @@ texts = {
     "player_entry_rules": "Regeln:",
     "player_entry_rule_1": "Mindestens 4 Spieler",
     "player_entry_rule_2": "und keine doppelten Namen.",
-    "player_entry_placeholder": "Spieler 1",
+    "player_entry_placeholder": "Spieler 1
     "player_entry_error_duplicate": "Doppelte Namen sind nicht erlaubt. Bitte korrigiere deine Eingabe.",
     "player_entry_error_min_players": "Es müssen mindestens 4 Spieler sein.",
     "next_to_role_selection": "Weiter zur Rollenauswahl",
@@ -217,7 +212,7 @@ texts = {
     "narrator_game_start_listening": "Der Erzähler spricht gleich. Höre aufmerksam zu...",
     "narrator_game_start_button": "Zum Start",
     "narrator_game_start_waiting": "Audio wird abgespielt...",
-    "narrator_game_start_ready": "Bereit? Drücke auf \"Zum Start\"",
+    "narrator_game_start_ready": "Bereit? Drücke auf "Zum Start"",
     "narrator_mode_active": "Erzähler-Modus aktiv",
     "to_game": "Zum Spiel",
     "confirm": "Bestätigen",
@@ -318,122 +313,3 @@ texts = {
     "win_screen_emoji": "🎉",
     "win_screen_restart_info": "Zur Rollenauswahl",
     "win_screen_home_info": "Kompletter Reset"
-}
-
-# === Sprach-Header + Sprachenliste ===
-LANGUAGES_HEADER = """export const LANGUAGES = [
-  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-  { code: 'en', name: 'English', flag: '🇬🇧' },
-  { code: 'fr', name: 'Français', flag: '🇫🇷' },
-  { code: 'es', name: 'Español', flag: '🇪🇸' },
-  { code: 'pt', name: 'Português', flag: '🇵🇹' },
-  { code: 'it', name: 'Italiano', flag: '🇮🇹' },
-  { code: 'ru', name: 'Русский', flag: '🇷🇺' },
-  { code: 'is', name: 'Íslenska', flag: '🇮🇸' },
-  { code: 'sv', name: 'Svenska', flag: '🇸🇪' },
-  { code: 'zh-CN', name: '中文', flag: '🇨🇳' },
-  { code: 'ja', name: '日本語', flag: '🇯🇵' },
-  { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
-  { code: 'ar', name: 'العربية', flag: '🇸🇦' },
-  { code: 'ko', name: '한국어', flag: '🇰🇷' },
-  { code: 'hi', name: 'हिन्दी', flag: '🇮🇳' },
-  { code: 'bn', name: 'বাংলা', flag: '🇧🇩' },
-  { code: 'pl', name: 'Polski', flag: '🇵🇱' },
-  { code: 'da', name: 'Dansk', flag: '🇩🇰' },
-  { code: 'cs', name: 'Čeština', flag: '🇨🇿' },
-  { code: 'fi', name: 'Suomi', flag: '🇫🇮' },
-  { code: 'no', name: 'Norsk', flag: '🇳🇴' },
-  { code: 'hu', name: 'Magyar', flag: '🇭🇺' },
-  { code: 'nl', name: 'Nederlands', flag: '🇳🇱' },
-  { code: 'ro', name: 'Română', flag: '🇷🇴' },
-  { code: 'iw', name: 'עברית', flag: '🇮🇱' },
-  { code: 'emoji', name: 'Emoji', flag: '🎭' }
-];
-
-export const translations: Record<string, Record<string, string>> = {
-"""
-
-# === Sprachcodes für Übersetzung ===
-languages = [
-    "de", "en", "fr", "es", "pt", "it", "ru", "is", "sv",
-    "zh-CN", "ja", "tr", "ar", "ko", "hi", "bn", "pl",
-    "da", "cs", "fi", "no", "hu", "nl", "ro", "iw"
-]
-
-# === Datei direkt überschreiben ===
-input_file = "src/i18n.ts"
-output_file = input_file
-
-# === Alte Übersetzungen lesen ===
-existing = {}
-if os.path.exists(input_file):
-    print(f"📂 Lade vorhandene Übersetzungen aus {input_file} ...")
-    try:
-        with open(input_file, "r", encoding="utf-8") as f:
-            content = f.read()
-            for lang_match in re.finditer(r"(\w+(?:-\w+)?)\s*:\s*{([^}]*)}", content, flags=re.DOTALL):
-                lang = lang_match.group(1)
-                existing[lang] = {}
-                for kv in re.finditer(r"(\w+)\s*:\s*\"((?:\\\"|[^\"])*)\"", lang_match.group(2)):
-                    key, val = kv.group(1), kv.group(2).replace('\\"', '"')
-                    existing[lang][key] = val
-    except Exception as e:
-        print(f"⚠️  Fehler beim Lesen der alten Datei: {e}")
-else:
-    print("ℹ️  Keine bestehende i18n.ts-Datei gefunden – beginne frisch.")
-
-print("\n🌍 Starte Übersetzungen...\n")
-
-# === Übersetzungsvorgang ===
-translations = {}
-total_new = 0
-total_existing = 0
-
-for lang in languages:
-    print(f"➡️  {lang.upper()} wird verarbeitet ...", end=" ")
-    translations[lang] = {}
-
-    new_count = 0
-    reused_count = 0
-    for key, original in texts.items():
-        # Alte Übersetzung übernehmen, falls vorhanden
-        if lang in existing and key in existing[lang]:
-            translations[lang][key] = existing[lang][key]
-            reused_count += 1
-            continue
-
-        # Neu übersetzen
-        try:
-            translated = GoogleTranslator(source="de", target=lang).translate(original)
-            if not translated:
-                translated = original
-        except Exception:
-            translated = original
-
-        translations[lang][key] = str(translated)
-        new_count += 1
-
-    total_new += new_count
-    total_existing += reused_count
-    print(f"✅ {reused_count} übernommen, {new_count} neu übersetzt.")
-
-# === Datei schreiben ===
-def format_ts_object(data, indent=2):
-    spaces = " " * indent
-    lines = []
-    for lang, values in data.items():
-        lines.append(f"{spaces}{lang}: {{")
-        for k in sorted(values.keys()):
-            v = str(values[k]).replace('"', '\\"')
-            lines.append(f'{spaces}  {k}: "{v}",')
-        lines.append(f"{spaces}}},")
-    return "\n".join(lines)
-
-print("\n💾 Schreibe Datei ...")
-try:
-    with open(output_file, "w", encoding="utf-8") as f:
-        f.write(LANGUAGES_HEADER + format_ts_object(translations, 2) + "\n}\n")
-    print(f"✅ Fertig! '{output_file}' erfolgreich aktualisiert.\n")
-    print(f"📊 {total_existing} Übersetzungen wiederverwendet, {total_new} neu erstellt.")
-except Exception as e:
-    print(f"❌ Fehler beim Schreiben der Datei: {e}")

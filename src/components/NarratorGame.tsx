@@ -1,4 +1,4 @@
-// src/components/NarratorGame.tsx - MIT CURRENT DAY
+// src/components/NarratorGame.tsx - MIT PROPS
 
 import React, { useState } from 'react';
 import { Player, Role } from '../types';
@@ -76,6 +76,8 @@ const NarratorGame: React.FC<NarratorGameProps> = ({
         thiefExtraRoles={thiefExtraRoles}
         jesterExtraRoles={jesterExtraRoles}
         onNightComplete={handleNightComplete}
+        onRestart={onGoToRoleSelection}
+        onGoHome={onNavigate}
       />
     );
   }

@@ -9,7 +9,7 @@ const LanguageSelector: React.FC = () => {
   const { setLocale, t } = useTranslation();
 
   const handleSelect = (
-    code: 'de' | 'en' | 'fr' | 'es' | 'pt' | 'it' | 'ru' | 'is' | 'sv' | 'zh' | 'ja' | 'tr' | 'ar' | 'ko' | 'hi' | 'bn' | 'bn' | 'pl' | 'da' | 'cs' | 'fi' | 'no' | 'hu' | 'nl' | 'ro' | 'he' | 'emoji'
+    code: 'de' | 'en' | 'fr' | 'es' | 'pt' | 'it' | 'ru' | 'is' | 'sv' | 'zh' | 'ja' | 'tr' | 'ar' | 'ko' | 'hi' | 'bn' | 'bn' | 'pl' | 'da' | 'cs' | 'fi' | 'no' | 'hu' | 'nl' | 'ro' | 'iw' | 'emoji'
   ) => {
     setLocale(code);
     setShowModal(false);
