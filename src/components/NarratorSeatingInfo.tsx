@@ -51,20 +51,19 @@ const NarratorSeatingInfo: React.FC<NarratorSeatingInfoProps> = ({ players, onCo
   if (showInfo) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white relative">
+        <div className="w-full max-w-lg bg-white/10 backdrop-blur-lg rounded-xl shadow-2xl p-8 text-white relative">
           
-          {/* RECHTS: Sprachen-Wechsel */}
-          <div className="absolute top-6 right-6">
+          <div className="absolute top-4 right-4">
             <LanguageSelector />
           </div>
 
-          <h1 className="text-4xl font-bold text-center mb-8">{t('narrator_seating_info_title')}</h1>
-          <p className="text-center mb-8 text-xl text-white/80">
+          <h1 className="text-2xl font-bold text-center mb-6">{t('narrator_seating_info_title')}</h1>
+          <p className="text-center mb-6 text-base text-white/80">
             {t('narrator_seating_info_message')}
           </p>
           <button
             onClick={handleInfoContinue}
-            className="w-full bg-blue-600 text-white font-bold py-4 px-6 rounded-xl hover:bg-blue-700 transition text-lg shadow-lg"
+            className="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition shadow-lg"
           >
             {t('continue')}
           </button>
@@ -75,46 +74,45 @@ const NarratorSeatingInfo: React.FC<NarratorSeatingInfoProps> = ({ players, onCo
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-      <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white relative">
+      <div className="w-full max-w-lg bg-white/10 backdrop-blur-lg rounded-xl shadow-2xl p-8 text-white relative">
         
-        {/* RECHTS: Sprachen-Wechsel */}
-        <div className="absolute top-6 right-6">
+        <div className="absolute top-4 right-4">
           <LanguageSelector />
         </div>
 
-        <h1 className="text-4xl font-bold mb-8 text-center">{t('card_reveal_title')}</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center">{t('card_reveal_title')}</h1>
 
-        <div className="w-full border-2 border-blue-400 border-dashed rounded-lg p-8 flex flex-col justify-center items-center text-center min-h-[250px]">
+        <div className="w-full border-2 border-blue-400 border-dashed rounded-lg p-6 flex flex-col justify-center items-center text-center min-h-[200px]">
           
-          <p className="text-2xl font-semibold mb-6">{currentPlayer.name}</p>
+          <p className="text-xl font-semibold mb-4">{currentPlayer.name}</p>
 
           {!isRevealed ? (
             <button 
               onClick={handleReveal} 
-              className="bg-blue-600 text-white font-bold py-4 px-10 rounded-xl hover:bg-blue-700 transition text-xl shadow-lg"
+              className="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 transition shadow-lg"
             >
               {t('reveal_role')}
             </button>
           ) : (
             <div className="w-full">
-              <h2 className="text-4xl font-bold text-green-400 mb-6">{currentRoleInfo?.name}</h2>
+              <h2 className="text-3xl font-bold text-green-400 mb-4">{currentRoleInfo?.name}</h2>
 
               {showDescription && (
-                <p className="text-base text-white/80 mb-6 px-4">{currentRoleInfo?.description}</p>
+                <p className="text-sm text-white/80 mb-4 px-2">{currentRoleInfo?.description}</p>
               )}
 
-              <div className="flex gap-4 mt-4">
+              <div className="flex gap-3 mt-4">
                 {!showDescription && (
                   <button 
                     onClick={() => setShowDescription(true)} 
-                    className="bg-blue-500 text-white font-bold py-3 px-8 rounded-xl hover:bg-blue-600 transition flex-1 text-lg"
+                    className="bg-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-600 transition flex-1"
                   >
                     {t('explanation')}
                   </button>
                 )}
                 <button 
                   onClick={handleNext} 
-                  className="bg-green-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-green-700 transition flex-1 text-lg shadow-lg"
+                  className="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 transition flex-1 shadow-lg"
                 >
                   {isLastPlayer ? t('continue') : t('next_player')}
                 </button>

@@ -1,4 +1,4 @@
-// src/components/NarratorDayPhase.tsx - VOLLSTÄNDIG
+// src/components/NarratorDayPhase.tsx - MOBILE-OPTIMIERT & VOLLSTÄNDIG
 
 import React, { useState, useEffect } from 'react';
 import { Player } from '../types';
@@ -479,50 +479,48 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
   if (phase === 'win_screen') {
     return (
       <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-yellow-600 via-orange-600 to-red-600">
-        <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white relative">
+        <div className="w-full max-w-lg bg-white/10 backdrop-blur-lg rounded-xl shadow-2xl p-8 text-white relative">
           
-          {/* LINKS: Pause-Button */}
           <div className="absolute top-4 left-4">
             <button
               onClick={handlePauseClick}
               className="p-2 hover:bg-white/20 rounded-full transition"
               title={t('pause_button')}
             >
-              <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="currentColor">
+              <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
                 <rect x="6" y="4" width="4" height="16" rx="1"/>
                 <rect x="14" y="4" width="4" height="16" rx="1"/>
               </svg>
             </button>
           </div>
 
-          {/* RECHTS: Sprachen-Wechsel */}
           <div className="absolute top-4 right-4">
             <LanguageSelector />
           </div>
 
-          <div className="text-center space-y-8 mt-8">
-            <div className="text-8xl">{t('win_screen_emoji')}</div>
-            <h1 className="text-5xl font-bold">{getWinnerText()}</h1>
+          <div className="text-center space-y-6 mt-8">
+            <div className="text-6xl">{t('win_screen_emoji')}</div>
+            <h1 className="text-3xl font-bold">{getWinnerText()}</h1>
             
-            <div className="grid grid-cols-2 gap-6 mt-12">
+            <div className="grid grid-cols-2 gap-4 mt-8">
               <div className="text-center">
                 <button
                   onClick={onRestart}
-                  className="w-full py-6 px-8 bg-blue-600 hover:bg-blue-700 text-white font-bold text-2xl rounded-xl shadow-lg transition transform hover:scale-105"
+                  className="w-full py-4 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg rounded-lg shadow-lg transition transform hover:scale-105"
                 >
                   {t('restart')}
                 </button>
-                <p className="text-sm text-white/70 mt-3">{t('win_screen_restart_info')}</p>
+                <p className="text-xs text-white/70 mt-2">{t('win_screen_restart_info')}</p>
               </div>
               
               <div className="text-center">
                 <button
                   onClick={onGoHome}
-                  className="w-full py-6 px-8 bg-red-600 hover:bg-red-700 text-white font-bold text-2xl rounded-xl shadow-lg transition transform hover:scale-105"
+                  className="w-full py-4 px-6 bg-red-600 hover:bg-red-700 text-white font-bold text-lg rounded-lg shadow-lg transition transform hover:scale-105"
                 >
                   {t('to_homepage')}
                 </button>
-                <p className="text-sm text-white/70 mt-3">{t('win_screen_home_info')}</p>
+                <p className="text-xs text-white/70 mt-2">{t('win_screen_home_info')}</p>
               </div>
             </div>
           </div>
@@ -558,23 +556,21 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-orange-900 via-red-900 to-pink-900">
-      <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-12 text-white relative">
+      <div className="w-full max-w-lg bg-white/10 backdrop-blur-lg rounded-xl shadow-2xl p-8 text-white relative">
         
-        {/* LINKS: Pause-Button */}
         <div className="absolute top-4 left-4">
           <button
             onClick={handlePauseClick}
             className="p-2 hover:bg-white/20 rounded-full transition"
             title={t('pause_button')}
           >
-            <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="currentColor">
+            <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
               <rect x="6" y="4" width="4" height="16" rx="1"/>
               <rect x="14" y="4" width="4" height="16" rx="1"/>
             </svg>
           </button>
         </div>
 
-        {/* RECHTS: Sprachen-Wechsel */}
         <div className="absolute top-4 right-4">
           <LanguageSelector />
         </div>
@@ -582,29 +578,29 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
         {phase === 'show_deaths' && (
           <div className="mt-8">
             {bearGrowled && (
-              <div className="mb-6 text-center">
-                <div className="text-6xl mb-4">🐻💢</div>
-                <p className="text-2xl font-bold text-yellow-400">{t('day_bear_growl')}</p>
+              <div className="mb-4 text-center">
+                <div className="text-4xl mb-3">🐻💢</div>
+                <p className="text-xl font-bold text-yellow-400">{t('day_bear_growl')}</p>
               </div>
             )}
             
-            <h1 className="text-4xl font-bold text-center mb-8">
+            <h1 className="text-2xl font-bold text-center mb-6">
               🌅 {t('day_deaths_title')}
             </h1>
 
             {nightDeaths.length === 0 ? (
-              <div className="text-center space-y-6">
-                <p className="text-3xl">🌙✨</p>
-                <p className="text-2xl text-white/80">{t('day_no_deaths')}</p>
+              <div className="text-center space-y-4">
+                <p className="text-2xl">🌙✨</p>
+                <p className="text-lg text-white/80">{t('day_no_deaths')}</p>
               </div>
             ) : (
-              <div className="space-y-4 mb-8">
+              <div className="space-y-3 mb-6">
                 {nightDeaths.map((name) => (
                   <div
                     key={name}
-                    className="bg-red-600/30 border-2 border-red-500 rounded-xl p-6 text-center transform hover:scale-105 transition"
+                    className="bg-red-600/30 border-2 border-red-500 rounded-lg p-4 text-center transform hover:scale-105 transition"
                   >
-                    <p className="text-3xl font-bold">💀 {name}</p>
+                    <p className="text-2xl font-bold">💀 {name}</p>
                   </div>
                 ))}
               </div>
@@ -612,7 +608,7 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
 
             <button
               onClick={handleShowDeaths}
-              className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
+              className="w-full py-3 px-6 bg-green-600 hover:bg-green-700 text-white font-bold text-lg rounded-lg shadow-lg transition-all"
             >
               {t('next')}
             </button>
@@ -621,19 +617,19 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
 
         {phase === 'maid_action' && (
           <div className="mt-8">
-            <h1 className="text-4xl font-bold text-center mb-8">
+            <h1 className="text-2xl font-bold text-center mb-6">
               👩🏼 {t('day_maid_choice_title')}
             </h1>
-            <p className="text-xl text-center mb-8 text-white/80">
+            <p className="text-base text-center mb-6 text-white/80">
               {t('day_maid_choice_desc')}
             </p>
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-2 gap-3 mb-4">
               {nightDeaths.map((deadName) => (
                 <button
                   key={deadName}
                   onClick={() => handleMaidAction(true, deadName)}
-                  className="py-4 px-6 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition"
+                  className="py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition"
                 >
                   {deadName}
                 </button>
@@ -642,7 +638,7 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
 
             <button
               onClick={() => handleMaidAction(false)}
-              className="w-full py-3 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-xl transition"
+              className="w-full py-2 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg transition"
             >
               {t('day_maid_nothing')}
             </button>
@@ -651,24 +647,24 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
 
         {phase === 'hunter_action' && (
           <div className="mt-8">
-            <h1 className="text-4xl font-bold text-center mb-8">
+            <h1 className="text-2xl font-bold text-center mb-6">
               🏹 {t('day_hunter_shoots_title')}
             </h1>
-            <div className="bg-red-600/30 border-2 border-red-500 rounded-xl p-6 text-center mb-8">
-              <p className="text-3xl font-bold">{hunterDeaths[currentHunterIndex]}</p>
+            <div className="bg-red-600/30 border-2 border-red-500 rounded-lg p-4 text-center mb-6">
+              <p className="text-2xl font-bold">{hunterDeaths[currentHunterIndex]}</p>
             </div>
-            <p className="text-xl text-center mb-8 text-white/80">
+            <p className="text-base text-center mb-6 text-white/80">
               {t('day_hunter_choose_target')}
             </p>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 max-h-80 overflow-y-auto">
               {dayPlayers
                 .filter(p => p.status === 'alive')
                 .map((player) => (
                   <button
                     key={player.name}
                     onClick={() => handleHunterShoot(player.name)}
-                    className="py-4 px-6 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition transform hover:scale-105"
+                    className="py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition transform hover:scale-105"
                   >
                     {player.name}
                   </button>
@@ -679,16 +675,16 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
 
         {phase === 'discussion' && (
           <div className="mt-8">
-            <h1 className="text-4xl font-bold text-center mb-8">
+            <h1 className="text-2xl font-bold text-center mb-6">
               💬 {t('day_discussion_title')}
             </h1>
-            <p className="text-xl text-center mb-8 text-white/80">
+            <p className="text-base text-center mb-6 text-white/80">
               {t('day_discussion_desc')}
             </p>
-            <div className="text-center text-6xl mb-8">🗣️</div>
+            <div className="text-center text-4xl mb-6">🗣️</div>
             <button
               onClick={() => setPhase('voting')}
-              className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
+              className="w-full py-3 px-6 bg-green-600 hover:bg-green-700 text-white font-bold text-lg rounded-lg shadow-lg transition-all"
             >
               {t('day_voting_title')}
             </button>
@@ -697,21 +693,21 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
 
         {phase === 'voting' && (
           <div className="mt-8">
-            <h1 className="text-4xl font-bold text-center mb-8">
+            <h1 className="text-2xl font-bold text-center mb-6">
               🗳️ {t('day_voting_title')}
             </h1>
-            <p className="text-xl text-center mb-8 text-white/80">
+            <p className="text-base text-center mb-6 text-white/80">
               {t('day_voting_desc')}
             </p>
 
-            <div className="grid grid-cols-2 gap-4 max-h-96 overflow-y-auto mb-6">
+            <div className="grid grid-cols-2 gap-3 max-h-80 overflow-y-auto mb-4">
               {dayPlayers
                 .filter(p => p.status === 'alive')
                 .map((player) => (
                   <button
                     key={player.name}
                     onClick={() => handleVoting(player.name)}
-                    className="py-4 px-6 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition transform hover:scale-105"
+                    className="py-3 px-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition transform hover:scale-105"
                   >
                     {player.name}
                   </button>
@@ -721,7 +717,7 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
             {scapegoatAlive && (
               <button
                 onClick={handleScapegoatDeath}
-                className="w-full py-4 px-8 bg-yellow-600 hover:bg-yellow-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
+                className="w-full py-3 px-6 bg-yellow-600 hover:bg-yellow-700 text-white font-bold text-lg rounded-lg shadow-lg transition-all"
               >
                 🐐 {t('day_voting_scapegoat')}
               </button>
@@ -731,7 +727,7 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
 
         {(phase === 'judge_close_eyes' || phase === 'judge_audio') && (
           <div className="text-center space-y-6 mt-12">
-            <div className="text-6xl animate-pulse">🎙️</div>
+            <div className="text-4xl animate-pulse">🎙️</div>
             <div className="flex justify-center gap-2">
               <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
               <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
@@ -742,23 +738,23 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
 
         {phase === 'judge_decision' && (
           <div className="mt-8">
-            <h1 className="text-4xl font-bold text-center mb-8">
+            <h1 className="text-2xl font-bold text-center mb-6">
               ⚖️ {t('day_judge_decision_title')}
             </h1>
-            <p className="text-2xl text-center mb-12 text-white/90">
+            <p className="text-lg text-center mb-8 text-white/90">
               {t('day_judge_decision_desc')}
             </p>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => handleJudgeDecision(true)}
-                className="py-8 px-6 bg-green-600 hover:bg-green-700 text-white font-bold text-2xl rounded-xl transition transform hover:scale-105"
+                className="py-6 px-4 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-lg transition transform hover:scale-105"
               >
                 ✅ {t('day_judge_yes')}
               </button>
               <button
                 onClick={() => handleJudgeDecision(false)}
-                className="py-8 px-6 bg-red-600 hover:bg-red-700 text-white font-bold text-2xl rounded-xl transition transform hover:scale-105"
+                className="py-6 px-4 bg-red-600 hover:bg-red-700 text-white font-bold text-xl rounded-lg transition transform hover:scale-105"
               >
                 ❌ {t('day_judge_no')}
               </button>
@@ -768,7 +764,7 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
 
         {(phase === 'judge_eyes_close' || phase === 'judge_eyes_open') && (
           <div className="text-center space-y-6 mt-12">
-            <div className="text-6xl animate-pulse">🎙️</div>
+            <div className="text-4xl animate-pulse">🎙️</div>
             <div className="flex justify-center gap-2">
               <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
               <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
@@ -779,25 +775,25 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
 
         {phase === 'judge_announcement' && (
           <div className="mt-8">
-            <h1 className="text-4xl font-bold text-center mb-8">
+            <h1 className="text-2xl font-bold text-center mb-6">
               ⚖️ {t('day_judge_decision_title')}
             </h1>
-            <div className="bg-blue-600/30 border-2 border-blue-500 rounded-xl p-8 text-center mb-8">
+            <div className="bg-blue-600/30 border-2 border-blue-500 rounded-lg p-6 text-center mb-6">
               {judgeWantsSecondVote ? (
                 <>
-                  <div className="text-6xl mb-4">✅</div>
-                  <p className="text-2xl font-bold">{t('day_judge_second_vote_yes')}</p>
+                  <div className="text-4xl mb-3">✅</div>
+                  <p className="text-xl font-bold">{t('day_judge_second_vote_yes')}</p>
                 </>
               ) : (
                 <>
-                  <div className="text-6xl mb-4">❌</div>
-                  <p className="text-2xl font-bold">{t('day_judge_second_vote_no')}</p>
+                  <div className="text-4xl mb-3">❌</div>
+                  <p className="text-xl font-bold">{t('day_judge_second_vote_no')}</p>
                 </>
               )}
             </div>
             <button
               onClick={handleJudgeAnnouncement}
-              className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
+              className="w-full py-3 px-6 bg-green-600 hover:bg-green-700 text-white font-bold text-lg rounded-lg shadow-lg transition-all"
             >
               {t('next')}
             </button>
@@ -806,21 +802,21 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
 
         {phase === 'second_voting' && (
           <div className="mt-8">
-            <h1 className="text-4xl font-bold text-center mb-8">
+            <h1 className="text-2xl font-bold text-center mb-6">
               🗳️ {t('day_second_voting_title')}
             </h1>
-            <p className="text-xl text-center mb-8 text-white/80">
+            <p className="text-base text-center mb-6 text-white/80">
               {t('day_second_voting_desc')}
             </p>
 
-            <div className="grid grid-cols-2 gap-4 max-h-96 overflow-y-auto mb-6">
+            <div className="grid grid-cols-2 gap-3 max-h-80 overflow-y-auto mb-4">
               {dayPlayers
                 .filter(p => p.status === 'alive')
                 .map((player) => (
                   <button
                     key={player.name}
                     onClick={() => handleSecondVoting(player.name)}
-                    className="py-4 px-6 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition transform hover:scale-105"
+                    className="py-3 px-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition transform hover:scale-105"
                   >
                     {player.name}
                   </button>
@@ -830,7 +826,7 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
             {scapegoatAlive && (
               <button
                 onClick={handleScapegoatDeath}
-                className="w-full py-4 px-8 bg-yellow-600 hover:bg-yellow-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
+                className="w-full py-3 px-6 bg-yellow-600 hover:bg-yellow-700 text-white font-bold text-lg rounded-lg shadow-lg transition-all"
               >
                 🐐 {t('day_voting_scapegoat')}
               </button>
@@ -840,23 +836,23 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
 
         {phase === 'show_day_deaths' && (
           <div className="mt-8">
-            <h1 className="text-4xl font-bold text-center mb-8">
+            <h1 className="text-2xl font-bold text-center mb-6">
               ⚰️ {t('day_deaths_of_day_title')}
             </h1>
 
             {dayDeaths.length === 0 ? (
-              <div className="text-center space-y-6">
-                <p className="text-3xl">✨</p>
-                <p className="text-2xl text-white/80">{t('day_deaths_of_day_none')}</p>
+              <div className="text-center space-y-4">
+                <p className="text-2xl">✨</p>
+                <p className="text-lg text-white/80">{t('day_deaths_of_day_none')}</p>
               </div>
             ) : (
-              <div className="space-y-4 mb-8">
+              <div className="space-y-3 mb-6">
                 {dayDeaths.map((name) => (
                   <div
                     key={name}
-                    className="bg-red-600/30 border-2 border-red-500 rounded-xl p-6 text-center transform hover:scale-105 transition"
+                    className="bg-red-600/30 border-2 border-red-500 rounded-lg p-4 text-center transform hover:scale-105 transition"
                   >
-                    <p className="text-3xl font-bold">💀 {name}</p>
+                    <p className="text-2xl font-bold">💀 {name}</p>
                   </div>
                 ))}
               </div>
@@ -864,7 +860,7 @@ const NarratorDayPhase: React.FC<NarratorDayPhaseProps> = ({
 
             <button
               onClick={handleShowDayDeaths}
-              className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
+              className="w-full py-3 px-6 bg-green-600 hover:bg-green-700 text-white font-bold text-lg rounded-lg shadow-lg transition-all"
             >
               {t('next')}
             </button>

@@ -443,30 +443,28 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-indigo-900 via-purple-900 to-blue-900">
-      <div className="w-full max-w-3xl bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 text-white relative">
+      <div className="w-full max-w-lg bg-white/10 backdrop-blur-lg rounded-xl shadow-2xl p-6 text-white relative">
         
-        {/* LINKS: Pause-Button */}
         <div className="absolute top-4 left-4">
           <button
             onClick={handlePauseClick}
             className="p-2 hover:bg-white/20 rounded-full transition"
             title={t('pause_button')}
           >
-            <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="currentColor">
+            <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
               <rect x="6" y="4" width="4" height="16" rx="1"/>
               <rect x="14" y="4" width="4" height="16" rx="1"/>
             </svg>
           </button>
         </div>
 
-        {/* RECHTS: Sprachen-Wechsel */}
         <div className="absolute top-4 right-4">
           <LanguageSelector />
         </div>
 
         {flowState === 'playing_audio' && (
           <div className="text-center space-y-6 mt-12">
-            <div className="text-6xl animate-pulse">🎙️</div>
+            <div className="text-5xl animate-pulse">🎙️</div>
             <div className="flex justify-center gap-2">
               <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
               <div className="w-3 h-3 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
@@ -482,10 +480,10 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
         )}
 
         {flowState === 'show_action' && (
-          <div className="space-y-6 mt-12">
+          <div className="space-y-4 mt-12">
             {displayText && (
-              <div className="bg-blue-600/30 border-2 border-blue-500 rounded-xl p-6 text-center mb-4">
-                <p className="text-2xl font-bold">{displayText}</p>
+              <div className="bg-blue-600/30 border-2 border-blue-500 rounded-lg p-4 text-center mb-4">
+                <p className="text-xl font-bold">{displayText}</p>
               </div>
             )}
             {renderAction()}
@@ -494,10 +492,10 @@ const NarratorNightFlow: React.FC<NarratorNightFlowProps> = ({
 
         {flowState === 'show_continue' && (
           <div className="text-center space-y-6 mt-12">
-            {displayText && <p className="text-2xl text-white/90">{displayText}</p>}
+            {displayText && <p className="text-xl text-white/90">{displayText}</p>}
             <button
               onClick={handleContinueClick}
-              className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg"
+              className="w-full py-3 px-6 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-lg"
             >
               {t('next')}
             </button>
@@ -598,15 +596,15 @@ const ActionOrphan: React.FC<{ players: Player[]; onComplete: (name: string, rol
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">{t('night_orphan_title')}</h2>
-      <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+      <h2 className="text-xl font-bold text-center">{t('night_orphan_title')}</h2>
+      <div className="grid grid-cols-2 gap-3 max-h-80 overflow-y-auto">
         {available.map((p) => (
-          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
+          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-2 px-3 rounded-lg font-bold transition text-sm ${selected === p.name ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {p.name}
           </button>
         ))}
       </div>
-      <button onClick={handleConfirm} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
+      <button onClick={handleConfirm} disabled={!selected} className={`w-full py-2 rounded-lg font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -618,15 +616,15 @@ const ActionThief: React.FC<{ cards: Role[]; onComplete: (card: Role) => void }>
   const [selected, setSelected] = useState<Role | null>(null);
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">{t('night_thief_title')}</h2>
+      <h2 className="text-xl font-bold text-center">{t('night_thief_title')}</h2>
       <div className="grid grid-cols-2 gap-3">
         {cards.map((card) => (
-          <button key={card.id} onClick={() => setSelected(card)} className={`py-4 px-4 rounded-xl font-bold transition ${selected?.id === card.id ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
+          <button key={card.id} onClick={() => setSelected(card)} className={`py-3 px-3 rounded-lg font-bold transition text-sm ${selected?.id === card.id ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {card.name}
           </button>
         ))}
       </div>
-      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
+      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-2 rounded-lg font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -638,15 +636,15 @@ const ActionJester: React.FC<{ cards: Role[]; onComplete: (card: Role) => void }
   const [selected, setSelected] = useState<Role | null>(null);
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">{t('night_jester_title')}</h2>
-      <div className="grid grid-cols-3 gap-3">
+      <h2 className="text-xl font-bold text-center">{t('night_jester_title')}</h2>
+      <div className="grid grid-cols-3 gap-2">
         {cards.map((card) => (
-          <button key={card.id} onClick={() => setSelected(card)} className={`py-4 px-3 rounded-xl font-bold transition text-sm ${selected?.id === card.id ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
+          <button key={card.id} onClick={() => setSelected(card)} className={`py-2 px-2 rounded-lg font-bold transition text-xs ${selected?.id === card.id ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {card.name}
           </button>
         ))}
       </div>
-      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
+      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-2 rounded-lg font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -666,15 +664,15 @@ const ActionCupid: React.FC<{ players: Player[]; onComplete: (l1: string, l2: st
   };
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">{t('night_cupid_title')}</h2>
-      <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+      <h2 className="text-xl font-bold text-center">{t('night_cupid_title')}</h2>
+      <div className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
         {alive.map((p) => (
-          <button key={p.name} onClick={() => handlePlayerClick(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${lover1 === p.name || lover2 === p.name ? 'bg-pink-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
+          <button key={p.name} onClick={() => handlePlayerClick(p.name)} className={`py-2 px-3 rounded-lg font-bold transition text-sm ${lover1 === p.name || lover2 === p.name ? 'bg-pink-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {p.name}
           </button>
         ))}
       </div>
-      <button onClick={() => lover1 && lover2 && onComplete(lover1, lover2)} disabled={!lover1 || !lover2} className={`w-full py-3 rounded-xl font-bold ${lover1 && lover2 ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
+      <button onClick={() => lover1 && lover2 && onComplete(lover1, lover2)} disabled={!lover1 || !lover2} className={`w-full py-2 rounded-lg font-bold ${lover1 && lover2 ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -687,15 +685,15 @@ const ActionAlphaWolf: React.FC<{ players: Player[]; onComplete: (name: string) 
   const targets = players.filter(p => !['werwolf', 'der_grosse_boese_werwolf', 'der_weisse_werwolf', 'urwolf'].includes(p.role.id) && p.status === 'alive');
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">{t('night_alpha_wolf_title')}</h2>
-      <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+      <h2 className="text-xl font-bold text-center">{t('night_alpha_wolf_title')}</h2>
+      <div className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
         {targets.map((p) => (
-          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-purple-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
+          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-2 px-3 rounded-lg font-bold transition text-sm ${selected === p.name ? 'bg-purple-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {p.name}
           </button>
         ))}
       </div>
-      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
+      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-2 rounded-lg font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -713,16 +711,16 @@ const ActionPiper: React.FC<{ players: Player[]; alreadyEnchanted: string[]; onC
   };
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">{t('night_piper_title')}</h2>
-      <p className="text-center text-sm">{t('night_piper_selected', { count: selected.length })}</p>
-      <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+      <h2 className="text-xl font-bold text-center">{t('night_piper_title')}</h2>
+      <p className="text-center text-xs">{t('night_piper_selected', { count: selected.length })}</p>
+      <div className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
         {available.map((p) => (
-          <button key={p.name} onClick={() => togglePlayer(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected.includes(p.name) ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
+          <button key={p.name} onClick={() => togglePlayer(p.name)} className={`py-2 px-3 rounded-lg font-bold transition text-sm ${selected.includes(p.name) ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {p.name}
           </button>
         ))}
       </div>
-      <button onClick={() => selected.length === 2 && onComplete(selected[0], selected[1])} disabled={selected.length !== 2} className={`w-full py-3 rounded-xl font-bold ${selected.length === 2 ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
+      <button onClick={() => selected.length === 2 && onComplete(selected[0], selected[1])} disabled={selected.length !== 2} className={`w-full py-2 rounded-lg font-bold ${selected.length === 2 ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -742,16 +740,16 @@ const ActionBitterOldMan: React.FC<{ players: Player[]; onComplete: (g1: string[
   const isValid = group1.length === halfCount;
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">{t('night_bitter_old_man_title')}</h2>
-      <p className="text-center text-sm">{t('night_bitter_old_man_selected', { count: group1.length, total: halfCount })}</p>
-      <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+      <h2 className="text-xl font-bold text-center">{t('night_bitter_old_man_title')}</h2>
+      <p className="text-center text-xs">{t('night_bitter_old_man_selected', { count: group1.length, total: halfCount })}</p>
+      <div className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
         {alive.map((p) => (
-          <button key={p.name} onClick={() => togglePlayer(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${group1.includes(p.name) ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
+          <button key={p.name} onClick={() => togglePlayer(p.name)} className={`py-2 px-3 rounded-lg font-bold transition text-sm ${group1.includes(p.name) ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {p.name}
           </button>
         ))}
       </div>
-      <button onClick={() => isValid && onComplete(group1, group2)} disabled={!isValid} className={`w-full py-3 rounded-xl font-bold ${isValid ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
+      <button onClick={() => isValid && onComplete(group1, group2)} disabled={!isValid} className={`w-full py-2 rounded-lg font-bold ${isValid ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -762,12 +760,12 @@ const ActionWolfhound: React.FC<{ onComplete: (choice: 'dorfbewohner' | 'werwolf
   const { t } = useTranslation();
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">{t('night_wolfhound_title')}</h2>
-      <div className="grid grid-cols-2 gap-4">
-        <button onClick={() => onComplete('dorfbewohner')} className="py-6 px-4 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-lg">
+      <h2 className="text-xl font-bold text-center">{t('night_wolfhound_title')}</h2>
+      <div className="grid grid-cols-2 gap-3">
+        <button onClick={() => onComplete('dorfbewohner')} className="py-4 px-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold">
           {t('night_wolfhound_villager')}
         </button>
-        <button onClick={() => onComplete('werwolf')} className="py-6 px-4 bg-red-600 hover:bg-red-700 rounded-xl font-bold text-lg">
+        <button onClick={() => onComplete('werwolf')} className="py-4 px-3 bg-red-600 hover:bg-red-700 rounded-lg font-bold">
           {t('night_wolfhound_werewolf')}
         </button>
       </div>
@@ -782,15 +780,15 @@ const ActionWildChild: React.FC<{ players: Player[]; onComplete: (name: string) 
   const available = players.filter(p => p.status === 'alive' && p.name !== wildChild?.name);
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">{t('night_wild_child_title')}</h2>
-      <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+      <h2 className="text-xl font-bold text-center">{t('night_wild_child_title')}</h2>
+      <div className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
         {available.map((p) => (
-          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
+          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-2 px-3 rounded-lg font-bold transition text-sm ${selected === p.name ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {p.name}
           </button>
         ))}
       </div>
-      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
+      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-2 rounded-lg font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -801,9 +799,9 @@ const ActionSiblings: React.FC<{ text: string; onComplete: () => void }> = ({ te
   const { t } = useTranslation();
   return (
     <div className="space-y-4 text-center">
-      <h2 className="text-2xl font-bold">👨‍👩‍👧‍👦</h2>
-      <p className="text-xl text-white/90">{text}</p>
-      <button onClick={onComplete} className="w-full py-4 px-8 bg-green-600 hover:bg-green-700 text-white font-bold text-xl rounded-xl shadow-lg">
+      <h2 className="text-xl font-bold">👨‍👩‍👧‍👦</h2>
+      <p className="text-base text-white/90">{text}</p>
+      <button onClick={onComplete} className="w-full py-3 px-6 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-lg">
         {t('next')}
       </button>
     </div>
@@ -819,30 +817,30 @@ const ActionSeer: React.FC<{ players: Player[]; alreadyChecked: string[]; onComp
   const selectedPlayer = players.find(p => p.name === selected);
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">{t('night_seer_title')}</h2>
+      <h2 className="text-xl font-bold text-center">{t('night_seer_title')}</h2>
       {!revealed ? (
         <>
-          <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+          <div className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
             {available.map((p) => {
               const wasChecked = alreadyChecked.includes(p.name);
               return (
-                <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-blue-600 text-white' : wasChecked ? 'bg-gray-700 text-white/60' : 'bg-white/20 hover:bg-white/30'}`}>
+                <button key={p.name} onClick={() => setSelected(p.name)} className={`py-2 px-3 rounded-lg font-bold transition text-sm ${selected === p.name ? 'bg-blue-600 text-white' : wasChecked ? 'bg-gray-700 text-white/60' : 'bg-white/20 hover:bg-white/30'}`}>
                   {p.name} {wasChecked && '✓'}
                 </button>
               );
             })}
           </div>
-          <button onClick={() => setRevealed(true)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-600 cursor-not-allowed'}`}>
+          <button onClick={() => setRevealed(true)} disabled={!selected} className={`w-full py-2 rounded-lg font-bold ${selected ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-600 cursor-not-allowed'}`}>
             {t('night_seer_reveal')}
           </button>
         </>
       ) : (
         <>
-          <div className="bg-purple-600/30 border-2 border-purple-500 rounded-xl p-6 text-center">
-            <p className="text-xl mb-2">{selectedPlayer?.name}</p>
-            <p className="text-3xl font-bold">{selectedPlayer?.role.name}</p>
+          <div className="bg-purple-600/30 border-2 border-purple-500 rounded-lg p-4 text-center">
+            <p className="text-lg mb-2">{selectedPlayer?.name}</p>
+            <p className="text-2xl font-bold">{selectedPlayer?.role.name}</p>
           </div>
-          <button onClick={() => selected && onComplete(selected)} className="w-full py-3 bg-green-600 hover:bg-green-700 rounded-xl font-bold">
+          <button onClick={() => selected && onComplete(selected)} className="w-full py-2 bg-green-600 hover:bg-green-700 rounded-lg font-bold">
             {t('next')}
           </button>
         </>
@@ -857,15 +855,15 @@ const ActionHealer: React.FC<{ players: Player[]; onComplete: (name: string) => 
   const alive = players.filter(p => p.status === 'alive');
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">{t('night_healer_title')}</h2>
-      <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+      <h2 className="text-xl font-bold text-center">{t('night_healer_title')}</h2>
+      <div className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
         {alive.map((p) => (
-          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
+          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-2 px-3 rounded-lg font-bold transition text-sm ${selected === p.name ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {p.name}
           </button>
         ))}
       </div>
-      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
+      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-2 rounded-lg font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -878,15 +876,15 @@ const ActionWerewolves: React.FC<{ players: Player[]; onComplete: (name: string)
   const targets = players.filter(p => !['werwolf', 'der_grosse_boese_werwolf', 'der_weisse_werwolf', 'urwolf'].includes(p.role.id) && p.status === 'alive');
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">{t('night_werewolves_title')}</h2>
-      <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+      <h2 className="text-xl font-bold text-center">{t('night_werewolves_title')}</h2>
+      <div className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
         {targets.map((p) => (
-          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-red-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
+          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-2 px-3 rounded-lg font-bold transition text-sm ${selected === p.name ? 'bg-red-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {p.name}
           </button>
         ))}
       </div>
-      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
+      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-2 rounded-lg font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -908,32 +906,32 @@ const ActionWitch: React.FC<{ players: Player[]; victimName: string | null; heal
     setPoisonTarget(poisonTarget === name ? null : name);
   };
   return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">{t('night_witch_title')}</h2>
+    <div className="space-y-3">
+      <h2 className="text-xl font-bold text-center">{t('night_witch_title')}</h2>
       {victimName && (
-        <div className="bg-red-600/30 border-2 border-red-500 rounded-xl p-4 text-center">
-          <p className="text-sm">{t('night_witch_victim')}</p>
-          <p className="text-xl font-bold">💀 {victimName}</p>
+        <div className="bg-red-600/30 border-2 border-red-500 rounded-lg p-3 text-center">
+          <p className="text-xs">{t('night_witch_victim')}</p>
+          <p className="text-lg font-bold">💀 {victimName}</p>
         </div>
       )}
-      <div className="space-y-3">
-        <button onClick={handleHealClick} disabled={healPotionUsed || !victimName} className={`w-full py-4 rounded-xl font-bold transition ${healed ? 'bg-green-600 text-white' : healPotionUsed || !victimName ? 'bg-gray-600 cursor-not-allowed text-white/50' : 'bg-green-500 hover:bg-green-600'}`}>
+      <div className="space-y-2">
+        <button onClick={handleHealClick} disabled={healPotionUsed || !victimName} className={`w-full py-3 rounded-lg font-bold transition text-sm ${healed ? 'bg-green-600 text-white' : healPotionUsed || !victimName ? 'bg-gray-600 cursor-not-allowed text-white/50' : 'bg-green-500 hover:bg-green-600'}`}>
           {healed ? `✅ ${t('night_witch_healed')}` : healPotionUsed ? `❌ ${t('night_witch_heal_used')}` : `💚 ${t('night_witch_heal')}`}
         </button>
-        <p className="text-center font-bold">☠️ {t('night_witch_poison')}</p>
+        <p className="text-center font-bold text-sm">☠️ {t('night_witch_poison')}</p>
         {poisonPotionUsed ? (
-          <p className="text-center text-white/60">❌ {t('night_witch_poison_used')}</p>
+          <p className="text-center text-white/60 text-xs">❌ {t('night_witch_poison_used')}</p>
         ) : (
-          <div className="grid grid-cols-2 gap-3 max-h-60 overflow-y-auto">
+          <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
             {alive.map((p) => (
-              <button key={p.name} onClick={() => handlePoisonClick(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${poisonTarget === p.name ? 'bg-purple-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
+              <button key={p.name} onClick={() => handlePoisonClick(p.name)} className={`py-2 px-2 rounded-lg font-bold transition text-xs ${poisonTarget === p.name ? 'bg-purple-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
                 {p.name}
               </button>
             ))}
           </div>
         )}
       </div>
-      <button onClick={() => onComplete(healed, poisonTarget)} className="w-full py-3 rounded-xl font-bold bg-purple-600 hover:bg-purple-700">
+      <button onClick={() => onComplete(healed, poisonTarget)} className="w-full py-2 rounded-lg font-bold bg-purple-600 hover:bg-purple-700">
         {t('confirm')}
       </button>
     </div>
@@ -947,15 +945,15 @@ const ActionHomeless: React.FC<{ players: Player[]; onComplete: (name: string) =
   const available = players.filter(p => p.status === 'alive' && p.name !== homeless?.name);
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">{t('night_homeless_title')}</h2>
-      <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+      <h2 className="text-xl font-bold text-center">{t('night_homeless_title')}</h2>
+      <div className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
         {available.map((p) => (
-          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
+          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-2 px-3 rounded-lg font-bold transition text-sm ${selected === p.name ? 'bg-blue-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {p.name}
           </button>
         ))}
       </div>
-      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
+      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-2 rounded-lg font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -968,18 +966,18 @@ const ActionFox: React.FC<{ players: Player[]; alreadyChecked: string[]; onCompl
   const alive = players.filter(p => p.status === 'alive');
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">{t('night_fox_title')}</h2>
-      <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+      <h2 className="text-xl font-bold text-center">{t('night_fox_title')}</h2>
+      <div className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
         {alive.map((p) => {
           const wasChecked = alreadyChecked.includes(p.name);
           return (
-            <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-blue-600 text-white' : wasChecked ? 'bg-gray-700 text-white/60' : 'bg-white/20 hover:bg-white/30'}`}>
+            <button key={p.name} onClick={() => setSelected(p.name)} className={`py-2 px-3 rounded-lg font-bold transition text-sm ${selected === p.name ? 'bg-blue-600 text-white' : wasChecked ? 'bg-gray-700 text-white/60' : 'bg-white/20 hover:bg-white/30'}`}>
               {p.name} {wasChecked && '✓'}
             </button>
           );
         })}
       </div>
-      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
+      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-2 rounded-lg font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -992,15 +990,15 @@ const ActionBigBadWolf: React.FC<{ players: Player[]; onComplete: (name: string)
   const targets = players.filter(p => !['werwolf', 'der_grosse_boese_werwolf', 'der_weisse_werwolf', 'urwolf'].includes(p.role.id) && p.status === 'alive');
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">{t('night_big_bad_wolf_title')}</h2>
-      <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+      <h2 className="text-xl font-bold text-center">{t('night_big_bad_wolf_title')}</h2>
+      <div className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
         {targets.map((p) => (
-          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-3 px-4 rounded-xl font-bold transition ${selected === p.name ? 'bg-red-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
+          <button key={p.name} onClick={() => setSelected(p.name)} className={`py-2 px-3 rounded-lg font-bold transition text-sm ${selected === p.name ? 'bg-red-600 text-white' : 'bg-white/20 hover:bg-white/30'}`}>
             {p.name}
           </button>
         ))}
       </div>
-      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-3 rounded-xl font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
+      <button onClick={() => selected && onComplete(selected)} disabled={!selected} className={`w-full py-2 rounded-lg font-bold ${selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'}`}>
         {t('confirm')}
       </button>
     </div>
@@ -1014,13 +1012,13 @@ const ActionWhiteWolf: React.FC<{ players: Player[]; onComplete: (name: string) 
   
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center">{t('night_white_wolf_title')}</h2>
-      <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+      <h2 className="text-xl font-bold text-center">{t('night_white_wolf_title')}</h2>
+      <div className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
         {werewolves.map((p) => (
           <button 
             key={p.name} 
             onClick={() => setSelected(p.name)} 
-            className={`py-3 px-4 rounded-xl font-bold transition ${
+            className={`py-2 px-3 rounded-lg font-bold transition text-sm ${
               selected === p.name ? 'bg-red-600 text-white' : 'bg-white/20 hover:bg-white/30'
             }`}
           >
@@ -1031,7 +1029,7 @@ const ActionWhiteWolf: React.FC<{ players: Player[]; onComplete: (name: string) 
       <button 
         onClick={() => selected && onComplete(selected)} 
         disabled={!selected} 
-        className={`w-full py-3 rounded-xl font-bold ${
+        className={`w-full py-2 rounded-lg font-bold ${
           selected ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'
         }`}
       >

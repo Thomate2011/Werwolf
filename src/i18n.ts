@@ -23,7 +23,7 @@ export const LANGUAGES = [
   { code: 'hu', name: 'Magyar', flag: '🇭🇺' },
   { code: 'nl', name: 'Nederlands', flag: '🇳🇱' },
   { code: 'ro', name: 'Română', flag: '🇷🇴' },
-  { code: 'iw', name: 'עברית', flag: '🇮🇱' },
+  { code: 'he', name: 'עברית', flag: '🇮🇱' },
   { code: 'emoji', name: 'Emoji', flag: '🎭' }
 ];
 
@@ -7636,7 +7636,7 @@ export const translations: Record<string, Record<string, string>> = {
     with_narrator: "Joacă-te cu naratorul",
     without_narrator: "Joacă fără narator",
   },
-  iw: {
+  he: {
     action_jester_desc: "בחר אחד משלושת הקלפים כדי להחליף איתם את תפקיד הלהטוטן שלך למשך הלילה.",
     action_love_btn: "לעלילה",
     action_love_desc: "בחר שני שחקנים מהרשימה כדי להתאהב. אם אחד מת, גם השני מת.",
