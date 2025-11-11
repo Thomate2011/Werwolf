@@ -84,7 +84,7 @@ const NarratorSeatingInfo: React.FC<NarratorSeatingInfoProps> = ({ players, onCo
 
         <div className="w-full border-2 border-blue-400 border-dashed rounded-lg p-6 flex flex-col justify-center items-center text-center min-h-[200px]">
           
-          <p className="text-xl font-semibold mb-4">{currentPlayer.name}</p>
+          {!showDescription && <p className="text-xl font-semibold mb-4">{currentPlayer.name}</p>}
 
           {!isRevealed ? (
             <button 
@@ -94,25 +94,25 @@ const NarratorSeatingInfo: React.FC<NarratorSeatingInfoProps> = ({ players, onCo
               {t('reveal_role')}
             </button>
           ) : (
-            <div className="w-full">
-              <h2 className="text-3xl font-bold text-green-400 mb-4">{currentRoleInfo?.name}</h2>
+            <div className="w-full space-y-3">
+              <h2 className="text-3xl font-bold text-green-400 break-words">{currentRoleInfo?.name}</h2>
 
               {showDescription && (
-                <p className="text-sm text-white/80 mb-4 px-2">{currentRoleInfo?.description}</p>
+                <p className="text-sm text-white/80 break-words">{currentRoleInfo?.description}</p>
               )}
 
-              <div className="flex gap-3 mt-4">
+              <div className="flex gap-2 flex-wrap justify-center">
                 {!showDescription && (
                   <button 
                     onClick={() => setShowDescription(true)} 
-                    className="bg-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-600 transition flex-1"
+                    className="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition text-sm"
                   >
                     {t('explanation')}
                   </button>
                 )}
                 <button 
                   onClick={handleNext} 
-                  className="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 transition flex-1 shadow-lg"
+                  className="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition shadow-lg text-sm"
                 >
                   {isLastPlayer ? t('continue') : t('next_player')}
                 </button>
